@@ -55,6 +55,11 @@
   .p-text{min-width:0;}
   .p-cn{font-weight:600;}
   .p-sub{color:#8b8b81;font-size:11px;line-height:1.5;}
+  .p-transit{
+    color:#0f766e;background:#f0fdfa;border:1px solid #ccfbf1;
+    border-radius:5px;padding:3px 6px;margin-top:4px;
+    font-size:11px;line-height:1.45;
+  }
 
   .pm span{
     display:flex;align-items:center;justify-content:center;
@@ -65,6 +70,10 @@
   .leaflet-popup-content{font-size:12.5px;line-height:1.7;margin:10px 14px;}
   .leaflet-popup-content strong{font-size:13.5px;}
   .leaflet-popup-content .en{color:#8a8a80;font-size:11.5px;}
+  .leaflet-popup-content .popup-transit{
+    margin-top:6px;font-size:11.5px;color:#0f766e;
+    background:#f0fdfa;border-radius:4px;padding:4px 7px;line-height:1.5;
+  }
 
   @media (max-width:820px){
     #app{flex-direction:column;}
@@ -95,74 +104,112 @@ const DAYS = [
   {
     id:'d1', date:'11/29 (日)', title:'中午到羽田 → 横滨入住 → 港未来夜景', color:'#E74C3C',
     places:[
-      {cn:'羽田机场', jp:'羽田空港', en:'Haneda Airport', lat:35.5494, lng:139.7798},
-      {cn:'酒店 Citadines Harbour Front', jp:'シタティーンハーバーフロント横浜', en:'Citadines Harbour Front Yokohama', lat:35.4458, lng:139.6422},
-      {cn:'港未来21区', jp:'みなとみらい21', en:'Minato Mirai 21', lat:35.4570, lng:139.6320}
+      {cn:'羽田机场', jp:'羽田空港', en:'Haneda Airport', lat:35.5494, lng:139.7798,
+       transit:'从上海飞抵。出关后乘京急线至横滨站，约 25 分钟。'},
+      {cn:'酒店 Citadines Harbour Front', jp:'シタティーンハーバーフロント横浜', en:'Citadines Harbour Front Yokohama', lat:35.4458, lng:139.6422,
+       transit:'从羽田机场乘京急线至横滨站（约 25 分钟），换港未来线 3 站至日本大通站，出站即达。'},
+      {cn:'港未来21区', jp:'みなとみらい21', en:'Minato Mirai 21', lat:35.4570, lng:139.6320,
+       transit:'从酒店步行约 10 分钟，或乘港未来线 1 站至港未来站。'}
     ]
   },
   {
     id:'d2', date:'11/30 (一)', title:'如龙核心：伊势佐木异人町（全程步行）', color:'#E67E22',
     places:[
-      {cn:'日本大通站', jp:'日本大通り駅', en:'Nihon-odori Station', lat:35.4460, lng:139.6425},
-      {cn:'关内站', jp:'関内駅', en:'Kannai Station', lat:35.4435, lng:139.6370},
-      {cn:'伊势佐木町商店街', jp:'伊勢佐木町商店街', en:'Isezakicho Shopping Street', lat:35.4420, lng:139.6340},
-      {cn:'恐龙招牌（维特厨房附近）', jp:'恐竜の看板', en:'Dinosaur Sign', lat:35.4406, lng:139.6332},
-      {cn:'大冈川 · 旭桥', jp:'大岡川・旭橋', en:'Ooka River · Asahibashi', lat:35.4415, lng:139.6360},
-      {cn:'都桥商店街', jp:'都橋商店街', en:'Miyakobashi Shopping Arcade', lat:35.4408, lng:139.6375}
+      {cn:'日本大通站', jp:'日本大通り駅', en:'Nihon-odori Station', lat:35.4460, lng:139.6425,
+       transit:'从酒店步行约 1 分钟。'},
+      {cn:'关内站', jp:'関内駅', en:'Kannai Station', lat:35.4435, lng:139.6370,
+       transit:'从日本大通站步行约 8–10 分钟。'},
+      {cn:'伊势佐木町商店街', jp:'伊勢佐木町商店街', en:'Isezakicho Shopping Street', lat:35.4420, lng:139.6340,
+       transit:'从关内站北口步行约 1 分钟。'},
+      {cn:'恐龙招牌（维特厨房附近）', jp:'恐竜の看板', en:'Dinosaur Sign', lat:35.4406, lng:139.6332,
+       transit:'从伊势佐木町商店街步行约 5 分钟。'},
+      {cn:'大冈川 · 旭桥', jp:'大岡川・旭橋', en:'Ooka River · Asahibashi', lat:35.4415, lng:139.6360,
+       transit:'从恐龙招牌步行约 5 分钟。'},
+      {cn:'都桥商店街', jp:'都橋商店街', en:'Miyakobashi Shopping Arcade', lat:35.4408, lng:139.6375,
+       transit:'从旭桥步行约 3–5 分钟。'}
     ]
   },
   {
     id:'d3', date:'12/1 (二)', title:'中华街 → 山下公园 → 红砖仓库 → 港未来', color:'#27AE60',
     places:[
-      {cn:'横滨中华街', jp:'横浜中華街', en:'Yokohama Chinatown', lat:35.4437, lng:139.6423},
-      {cn:'山下公园', jp:'山下公園', en:'Yamashita Park', lat:35.4445, lng:139.6500},
-      {cn:'冰川丸', jp:'日本郵船氷川丸', en:'NYK Hikawa Maru', lat:35.4450, lng:139.6515},
-      {cn:'象鼻防波堤', jp:'象の鼻防波堤', en:"Elephant's Nose Breakwater", lat:35.4478, lng:139.6455},
-      {cn:'横滨红砖仓库', jp:'横浜赤レンガ倉庫', en:'Yokohama Red Brick Warehouse', lat:35.4527, lng:139.6427},
-      {cn:'港未来21区', jp:'みなとみらい21', en:'Minato Mirai 21', lat:35.4570, lng:139.6320}
+      {cn:'横滨中华街', jp:'横浜中華街', en:'Yokohama Chinatown', lat:35.4437, lng:139.6423,
+       transit:'从酒店步行约 10 分钟。'},
+      {cn:'山下公园', jp:'山下公園', en:'Yamashita Park', lat:35.4445, lng:139.6500,
+       transit:'从中华街步行约 5–10 分钟。'},
+      {cn:'冰川丸', jp:'日本郵船氷川丸', en:'NYK Hikawa Maru', lat:35.4450, lng:139.6515,
+       transit:'从山下公园步行约 3 分钟。'},
+      {cn:'象鼻防波堤', jp:'象の鼻防波堤', en:"Elephant's Nose Breakwater", lat:35.4478, lng:139.6455,
+       transit:'从冰川丸步行约 5–7 分钟。'},
+      {cn:'横滨红砖仓库', jp:'横浜赤レンガ倉庫', en:'Yokohama Red Brick Warehouse', lat:35.4527, lng:139.6427,
+       transit:'从象鼻防波堤步行约 10–12 分钟。'},
+      {cn:'港未来21区', jp:'みなとみらい21', en:'Minato Mirai 21', lat:35.4570, lng:139.6320,
+       transit:'从红砖仓库步行约 10 分钟，或乘港未来线 1 站至港未来站。'}
     ]
   },
   {
     id:'d4', date:'12/2 (三)', title:'镰仓 · 江之岛一日游', color:'#16A085',
     places:[
-      {cn:'镰仓站', jp:'鎌倉駅', en:'Kamakura Station', lat:35.3192, lng:139.5503},
-      {cn:'小町通', jp:'小町通り', en:'Komachi-dori', lat:35.3215, lng:139.5510},
-      {cn:'鹤冈八幡宫', jp:'鶴岡八幡宮', en:'Tsurugaoka Hachimangu', lat:35.3260, lng:139.5563},
-      {cn:'镰仓高校前站', jp:'鎌倉高校前駅', en:'Kamakura-Koko-Mae Station', lat:35.3067, lng:139.5005},
-      {cn:'江之岛', jp:'江の島', en:'Enoshima', lat:35.2995, lng:139.4805}
+      {cn:'镰仓站', jp:'鎌倉駅', en:'Kamakura Station', lat:35.3192, lng:139.5503,
+       transit:'从酒店日本大通站乘港未来线至横滨站（约 6 分钟），换 JR 横须贺线约 25 分钟。'},
+      {cn:'小町通', jp:'小町通り', en:'Komachi-dori', lat:35.3215, lng:139.5510,
+       transit:'从镰仓站步行约 2 分钟。'},
+      {cn:'鹤冈八幡宫', jp:'鶴岡八幡宮', en:'Tsurugaoka Hachimangu', lat:35.3260, lng:139.5563,
+       transit:'从小町通步行约 10 分钟。'},
+      {cn:'镰仓高校前站', jp:'鎌倉高校前駅', en:'Kamakura-Koko-Mae Station', lat:35.3067, lng:139.5005,
+       transit:'从镰仓站乘江之电约 20 分钟至镰仓高校前站。'},
+      {cn:'江之岛', jp:'江の島', en:'Enoshima', lat:35.2995, lng:139.4805,
+       transit:'从镰仓高校前站乘江之电至江之岛站，步行约 15 分钟，全程约 20 分钟。'}
     ]
   },
   {
     id:'d5', date:'12/3 (四)', title:'P5 东京西侧：涩谷 + 三轩茶屋', color:'#8E44AD',
     places:[
-      {cn:'涩谷站', jp:'渋谷駅', en:'Shibuya Station', lat:35.6580, lng:139.7016},
-      {cn:'三轩茶屋站', jp:'三軒茶屋駅', en:'Sangen-jaya Station', lat:35.6437, lng:139.6700},
-      {cn:'New Marina（卢布朗原型）', jp:'ニューマリーナ', en:'New Marina', lat:35.6425, lng:139.6705},
-      {cn:'千代の汤', jp:'千代の湯', en:'Chiyono-yu', lat:35.6428, lng:139.6685},
-      {cn:'八公像', jp:'忠犬ハチ公像', en:'Hachiko Statue', lat:35.6590, lng:139.7005}
+      {cn:'涩谷站', jp:'渋谷駅', en:'Shibuya Station', lat:35.6580, lng:139.7016,
+       transit:'从酒店日本大通站乘港未来线直通东急东横线至涩谷，约 40–45 分钟。'},
+      {cn:'三轩茶屋站', jp:'三軒茶屋駅', en:'Sangen-jaya Station', lat:35.6437, lng:139.6700,
+       transit:'从涩谷站乘田园都市线 2 站，约 4 分钟。'},
+      {cn:'New Marina（卢布朗原型）', jp:'ニューマリーナ', en:'New Marina', lat:35.6425, lng:139.6705,
+       transit:'从三轩茶屋站步行约 5 分钟。'},
+      {cn:'千代の汤', jp:'千代の湯', en:'Chiyono-yu', lat:35.6428, lng:139.6685,
+       transit:'从 New Marina 步行约 3 分钟。'},
+      {cn:'八公像', jp:'忠犬ハチ公像', en:'Hachiko Statue', lat:35.6590, lng:139.7005,
+       transit:'从三轩茶屋乘田园都市线回涩谷，步行约 2 分钟。'}
     ]
   },
   {
     id:'d6', date:'12/4 (五)', title:'如龙东京线：歌舞伎町 + 秋叶原', color:'#2980B9',
     places:[
-      {cn:'新宿站', jp:'新宿駅', en:'Shinjuku Station', lat:35.6896, lng:139.7006},
-      {cn:'歌舞伎町一番街（红门牌）', jp:'歌舞伎町一番街', en:'Kabukicho Ichiban-gai', lat:35.6947, lng:139.7016},
-      {cn:'唐吉诃德 歌舞伎町店周边', jp:'ドン・キホーテ 歌舞伎町店周辺', en:'Don Quijote Kabukicho', lat:35.6953, lng:139.7010},
-      {cn:'天下一通り', jp:'天下一通り', en:'Tenka-Ichi-dori', lat:35.6940, lng:139.7025},
-      {cn:'剧场前广场', jp:'劇場前広場', en:'Theater Square', lat:35.6953, lng:139.6996},
-      {cn:'秋叶原站', jp:'秋葉原駅', en:'Akihabara Station', lat:35.6984, lng:139.7731},
-      {cn:'秋叶原电器街口', jp:'秋葉原電気街口', en:'Akihabara Electric Town Exit', lat:35.6985, lng:139.7715},
-      {cn:'友都八喜秋叶原', jp:'ヨドバシAkiba', en:'Yodobashi Akiba', lat:35.6990, lng:139.7745}
+      {cn:'新宿站', jp:'新宿駅', en:'Shinjuku Station', lat:35.6896, lng:139.7006,
+       transit:'从酒店日本大通站乘港未来线至涩谷，换 JR 山手线至新宿，约 50 分钟。'},
+      {cn:'歌舞伎町一番街（红门牌）', jp:'歌舞伎町一番街', en:'Kabukicho Ichiban-gai', lat:35.6947, lng:139.7016,
+       transit:'从新宿站东口步行约 5 分钟。'},
+      {cn:'唐吉诃德 歌舞伎町店周边', jp:'ドン・キホーテ 歌舞伎町店周辺', en:'Don Quijote Kabukicho', lat:35.6953, lng:139.7010,
+       transit:'从歌舞伎町一番街步行约 2 分钟。'},
+      {cn:'天下一通り', jp:'天下一通り', en:'Tenka-Ichi-dori', lat:35.6940, lng:139.7025,
+       transit:'从唐吉诃德步行约 2 分钟。'},
+      {cn:'剧场前广场', jp:'劇場前広場', en:'Theater Square', lat:35.6953, lng:139.6996,
+       transit:'从天下一通り步行约 2 分钟。'},
+      {cn:'秋叶原站', jp:'秋葉原駅', en:'Akihabara Station', lat:35.6984, lng:139.7731,
+       transit:'从新宿站乘 JR 中央线快速约 15–20 分钟。'},
+      {cn:'秋叶原电器街口', jp:'秋葉原電気街口', en:'Akihabara Electric Town Exit', lat:35.6985, lng:139.7715,
+       transit:'从秋叶原站步行约 1 分钟。'},
+      {cn:'友都八喜秋叶原', jp:'ヨドバシAkiba', en:'Yodobashi Akiba', lat:35.6990, lng:139.7745,
+       transit:'从电器街口步行约 3 分钟。'}
     ]
   },
   {
     id:'d7', date:'12/5 (六)', title:'横滨收尾 → 傍晚去羽田', color:'#34495E',
     places:[
-      {cn:'野毛', jp:'野毛', en:'Noge', lat:35.4510, lng:139.6330},
-      {cn:'爵士吃茶ちぐさ', jp:'ジャズ喫茶ちぐさ', en:'Jazz Museum CHIGUSA', lat:35.4503, lng:139.6322},
-      {cn:'樱木町站', jp:'桜木町駅', en:'Sakuragicho Station', lat:35.4520, lng:139.6310},
-      {cn:'日本大通站', jp:'日本大通り駅', en:'Nihon-odori Station', lat:35.4460, lng:139.6425},
-      {cn:'羽田机场', jp:'羽田空港', en:'Haneda Airport', lat:35.5494, lng:139.7798}
+      {cn:'野毛', jp:'野毛', en:'Noge', lat:35.4510, lng:139.6330,
+       transit:'从酒店日本大通站乘港未来线至马车道或樱木町，步行约 10 分钟。'},
+      {cn:'爵士吃茶ちぐさ', jp:'ジャズ喫茶ちぐさ', en:'Jazz Museum CHIGUSA', lat:35.4503, lng:139.6322,
+       transit:'从野毛步行约 3–5 分钟。'},
+      {cn:'樱木町站', jp:'桜木町駅', en:'Sakuragicho Station', lat:35.4520, lng:139.6310,
+       transit:'从爵士吃茶ちぐさ步行约 5 分钟。'},
+      {cn:'日本大通站', jp:'日本大通り駅', en:'Nihon-odori Station', lat:35.4460, lng:139.6425,
+       transit:'从樱木町站乘港未来线 2 站至日本大通，约 5 分钟（回酒店取行李）。'},
+      {cn:'羽田机场', jp:'羽田空港', en:'Haneda Airport', lat:35.5494, lng:139.7798,
+       transit:'从日本大通站乘港未来线至横滨站，换京急线至羽田机场，约 45–50 分钟。'}
     ]
   }
 ];
@@ -220,7 +267,8 @@ DAYS.forEach((day, di) => {
     const marker = L.marker([p.lat, p.lng], { icon, title: p.cn }).addTo(group);
 
     marker.bindPopup(
-      `<strong>${p.cn}</strong><br>${p.jp}<br><span class="en">${p.en}</span>`
+      `<strong>${p.cn}</strong><br>${p.jp}<br><span class="en">${p.en}</span>` +
+      (p.transit ? `<div class="popup-transit">🚇 ${p.transit}</div>` : '')
     );
 
     marker.on('click', () => setActive(di, pi));
@@ -247,6 +295,7 @@ DAYS.forEach((day, di) => {
             <div class="p-text">
               <div class="p-cn">${p.cn}</div>
               <div class="p-sub">${p.jp} · ${p.en}</div>
+              ${p.transit ? `<div class="p-transit">🚇 ${p.transit}</div>` : ''}
             </div>
           </li>
         `).join('')}

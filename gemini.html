@@ -512,19 +512,16 @@
     // Init Map
     const map = L.map("map", { zoomControl: true }).setView([35.48, 139.64], 11);
 
-    const tileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-      referrerPolicy: "strict-origin-when-cross-origin"
+    const tileLayer = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',
+      maxZoom: 18
     }).addTo(map);
 
     let tileWarned = false;
     tileLayer.on("tileerror", () => {
       if (tileWarned) return;
       tileWarned = true;
-      console.warn(
-        "地图瓦片加载失败。请确认你是通过本地静态服务器（例如 http://localhost:8000）打开本文件，而不是双击以 file:// 方式打开。"
-      );
+      console.warn("地图瓦片加载失败，请检查网络连接或稍后重试。");
     });
 
     let activeDay = 0;

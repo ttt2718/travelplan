@@ -217,17 +217,12 @@ const DAYS = [
 /* ---------- 地图初始化 ---------- */
 const map = L.map('map', { zoomControl:true, scrollWheelZoom:true }).setView([35.50, 139.65], 11);
 
-/*
-  瓦片源：OpenStreetMap 主站标准瓦片
-  - 通过 http://localhost 访问时，浏览器会正常发送 Referer，OSM 主站不会拦截。
-  - 这是最标准、最稳定的底图，无需 API Key。
-*/
+/* 瓦片源：日本国土地理院（GSI）标准地图，无需 API Key。 */
 const tileLayer = L.tileLayer(
-  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
   {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-    referrerPolicy: 'strict-origin-when-cross-origin'
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'
   }
 ).addTo(map);
 
@@ -238,7 +233,7 @@ tileLayer.on('tileerror', () => {
   const el = document.getElementById('mapError');
   if (el) {
     el.style.display = 'block';
-    el.innerHTML = '瓦片加载失败。请确认你是通过本地服务器（例如 <code>http://localhost:8000</code>）打开本文件，而不是双击以 <code>file://</code> 方式打开。';
+    el.innerHTML = '地图瓦片加载失败，请检查网络连接或稍后重试。';
   }
 });
 

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>横滨 + 东京 + 镰仓 7天行程交互地图 (11/29 - 12/05)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --hotel: #0f172a;
+      --p5: #dc2626;
+      --yakuza: #d97706;
+      --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    }
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .header-title p {
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-top: 2px;
+    }
+    .hotel-badge {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.22);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hotel-badge:hover {
+      background: rgba(255,255,255,0.22);
+    }
+
+    /* Day Filter Bar */
+    .filter-bar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      z-index: 900;
+    }
+    .day-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      padding: 6px 13px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .day-btn:hover {
+      background: #f1f5f9;
+    }
+    .day-btn.active {
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .day-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Main Split Layout */
+    .main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      position: relative;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 410px;
+      max-width: 100%;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .day-summary {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .day-summary h2 {
+      font-size: 16px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .day-summary .transit-box {
+      font-size: 12.5px;
+      color: #334155;
+      background: #f8fafc;
+      border-left: 3px solid var(--accent);
+      padding: 8px 10px;
+      border-radius: 0 6px 6px 0;
+      line-height: 1.55;
+      margin-top: 8px;
+    }
+
+    .spot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .spot-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+    }
+    .spot-card:hover {
+      border-color: #94a3b8;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+    .spot-card.active {
+      border-color: var(--accent);
+      background: #eff6ff;
+      box-shadow: var(--shadow);
+    }
+    .spot-num {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .spot-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .spot-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .spot-zh {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .spot-names {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+    .spot-note {
+      font-size: 12.5px;
+      color: #334155;
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+    .spot-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tags {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .tag-p5 { background: #fee2e2; color: #b91c1c; }
+    .tag-yakuza { background: #fef3c7; color: #b45309; }
+    .tag-day { background: #e2e8f0; color: #334155; }
+    .tag-opt { background: #ede9fe; color: #6d28d9; }
+
+    .gmaps-link {
+      font-size: 11.5px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .gmaps-link:hover { text-decoration: underline; }
+
+    /* Map Container */
+    .map-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 350px;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    .map-controls-overlay {
+      position: absolute;
+      bottom: 18px;
+      right: 16px;
+      z-index: 800;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .map-ctrl-btn {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .map-ctrl-btn:hover { background: #f8fafc; }
+
+    /* Custom Leaflet Markers */
+    .custom-pin {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2.5px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      transition: transform 0.15s;
+    }
+    .custom-pin.selected {
+      transform: scale(1.28);
+      border-color: #fde047;
+      z-index: 999 !important;
+    }
+    .hotel-pin {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #0f172a;
+      color: #fde047;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid #fff;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.45);
+    }
+
+    /* Popup styling */
+    .popup-box {
+      min-width: 210px;
+      font-family: inherit;
+    }
+    .popup-box h3 {
+      font-size: 14px;
+      margin-bottom: 3px;
+      color: #0f172a;
+    }
+    .popup-sub {
+      font-size: 11.5px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .popup-note {
+      font-size: 12.5px;
+      color: #334155;
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+    .popup-btn {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff !important;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+    }
+
+    /* Responsive Mobile */
+    @media (max-width: 820px) {
+      body { height: auto; overflow: auto; }
+      .main { flex-direction: column-reverse; }
+      .map-wrap { height: 52vh; min-height: 360px; }
+      .sidebar { width: 100%; max-height: none; overflow: visible; border-right: none; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>横滨 + 东京 + 镰仓 7天行程交互地图</h1>
+      <p>2026年11月29日（周日）中午抵羽田 — 12月5日（周六）晚返上海 · P5 &amp; 如龙圣地巡礼</p>
+    </div>
+    <div class="hotel-badge" id="focusHotelBtn" title="点击在地图上定位酒店">
+      <span>🏨</span>
+      <span>Citadines Harbour Front Yokohama（日本大通站）</span>
+    </div>
+  </header>
+
+  <nav class="filter-bar" id="filterBar"></nav>
+
+  <main class="main">
+    <aside class="sidebar">
+      <div class="day-summary" id="daySummary"></div>
+      <div class="spot-list" id="spotList"></div>
+    </aside>
+    <section class="map-wrap">
+      <div id="map"></div>
+      <div class="map-controls-overlay">
+        <button class="map-ctrl-btn" id="fitBoundsBtn">🎯 适配当前视野</button>
+        <button class="map-ctrl-btn" id="toggleLinesBtn">〰️ 隐藏/显示连线</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const HOTEL = {
+      zh: "横滨海港馨乐庭酒店（你的住处）",
+      ja: "シタディーン ハーバーフロント 横浜",
+      en: "Citadines Harbour Front Yokohama",
+      address: "5-2 Nihonodori, Naka Ward, Yokohama, Kanagawa 231-0021",
+      lat: 35.446815,
+      lng: 139.642500,
+      note: "日本大通站 4 号出口直达！楼下港未来线可直通涉谷/新宿三丁目；步行 10 分钟到 JR 关内站直达秋叶原/东京站；步行 5-8 分钟即达大栈桥、山下公园、中华街。"
+    };
+
+    const DAYS = {
+      0: {
+        label: "全部 7 天总览",
+        short: "全部总览",
+        color: "#0f172a",
+        title: "7 天行程总览（11/29 - 12/05）",
+        transit: "核心优势：酒店楼下【日本大通站】直通涉谷/新宿三丁目，步行 10 分钟【JR 关内站】直达秋叶原/东京站。点击上方 Day 1–Day 7 按钮可查看每天的局部放大路线与交通攻略。"
+      },
+      1: {
+        label: "Day 1 · 11/29 周日",
+        short: "D1 抵日+港未来",
+        color: "#2563eb",
+        title: "Day 1（11/29 周日）：抵达羽田 → 横滨入住 → 港未来夜景",
+        transit: "交通：羽田机场坐京急线到横滨站（25分钟），转港未来线 3 站到【日本大通站】即达酒店。下午步行逛红砖仓库与摩天轮，反向坐空中缆车到樱木町吃晚餐。"
+      },
+      2: {
+        label: "Day 2 · 11/30 周一",
+        short: "D2 如龙异人町",
+        color: "#d97706",
+        title: "Day 2（11/30 周一）：横滨《如龙》异人町巡礼 + 海滨日落",
+        transit: "交通：全天步行串联！酒店 → 伊势佐木町 → 中华街（午饭）→ 山下公园 → 大栈桥日落（可顺路回酒店放东西歇脚）→ 晚上去野毛体验昭和居酒屋。"
+      },
+      3: {
+        label: "Day 3 · 12/1 周二",
+        short: "D3 东京西线",
+        color: "#dc2626",
+        title: "Day 3（12/1 周二）：东京西线（P5 四轩茶屋/涉谷 + 如龙神室町）",
+        transit: "交通：楼下【日本大通站】乘港未来线直通东急东横线直达涉谷，换 2 站到三轩茶屋 → 回涉谷 → JR 到新宿歌舞伎町。返程从【新宿三丁目站】坐副都心线 F-Liner 一车直达酒店楼下！"
+      },
+      4: {
+        label: "Day 4 · 12/2 周三",
+        short: "D4 镰仓江之岛",
+        color: "#0891b2",
+        title: "Day 4（12/2 周三）：横滨周边慢游——镰仓 & 江之岛日落",
+        transit: "交通：楼下【日本大通站】坐 3 站（6分钟）到横滨站，换乘 JR 横须贺线 25 分钟直达镰仓站。下午坐复古江之电串联大佛、镰仓高校前与江之岛。"
+      },
+      5: {
+        label: "Day 5 · 12/3 周四",
+        short: "D5 东京东线",
+        color: "#7c3aed",
+        title: "Day 5（12/3 周四）：东京东线（秋叶原淘谷子 + 神田神社 + 东京站）",
+        transit: "交通：酒店步行 10 分钟至【JR 关内站】，乘京滨东北线一车直达秋叶原（约 45 分钟免换乘）。晚上从东京站坐京滨东北线直达关内站步行回酒店。"
+      },
+      6: {
+        label: "Day 6 · 12/4 周五",
+        short: "D6 山手文艺慢游",
+        color: "#059669",
+        title: "Day 6（12/4 周五）：横滨山手西洋馆 + 元町 + 合味道纪念馆",
+        transit: "交通：楼下坐港未来线仅 1 站（2分钟）到【元町・中华街站】，坐直梯上山到港见丘公园，顺坡逛元町早午餐，下午沿海步行至合味道纪念馆与港未来。"
+      },
+      7: {
+        label: "Day 7 · 12/5 周六",
+        short: "D7 弹性扫货+返程",
+        color: "#db2777",
+        title: "Day 7（12/5 周六）：退房寄存行李 → 弹性二选一 → 晚班机回上海",
+        transit: "交通：行李寄存在酒店前台。白天二选一：轻松版逛三井海滨奥莱/横滨站，或巡礼版去吉祥寺。建议起飞前 3.5 小时从酒店出发（日本大通站 → 横滨站换京急线 → 羽田 T3，约 45-50 分钟）。"
+      }
+    };
+
+    const SPOTS = [
+      // Day 1
+      { id: 1, day: 1, zh: "羽田机场", ja: "羽田空港", en: "Haneda Airport", lat: 35.5494, lng: 139.7798, note: "11/29 中午抵达，乘京急线 25 分钟直达横滨站，再换港未来线 3 站到酒店。", tags: [] },
+      { id: 2, day: 1, zh: "横滨红砖仓库", ja: "横浜赤レンガ倉庫", en: "Yokohama Red Brick Warehouse", lat: 35.452167, lng: 139.642889, note: "酒店步行约 10 分钟即达。11 月底已有浓厚圣诞集市与暖黄灯光氛围。", tags: [] },
+      { id: 3, day: 1, zh: "横滨宇宙乐园", ja: "よこはまコスモワールド", en: "Yokohama Cosmo World", lat: 35.455203, lng: 139.636681, note: "打卡横滨标志性大摩天轮夜景（注意：周四闭园，安排在周日正好开放）。", tags: [] },
+      { id: 4, day: 1, zh: "横滨空中缆车（运河公园→樱木町）", ja: "YOKOHAMA AIR CABIN 運河パーク駅", en: "YOKOHAMA AIR CABIN Unga Park Station", lat: 35.453306, lng: 139.638389, note: "反向乘坐城市空中缆车滑行至樱木町站，俯瞰港未来海湾夜景，随后在樱木町吃晚餐。", tags: [] },
+
+      // Day 2
+      { id: 5, day: 2, zh: "伊势佐木町", ja: "伊勢佐木町", en: "Isezakicho", lat: 35.443375, lng: 139.631308, note: "《如龙7/8》“伊势佐木异人町”主干道原型，酒店步行约 12 分钟可达，上午人少好拍照。", tags: ["yakuza"] },
+      { id: 6, day: 2, zh: "横滨中华街", ja: "横浜中華街", en: "Yokohama Chinatown", lat: 35.4427, lng: 139.6459, note: "《如龙》中华街原型，红灯笼牌楼极有辨识度，适合边逛边吃生煎小笼包或老字号午饭。", tags: ["yakuza"] },
+      { id: 7, day: 2, zh: "山下公园", ja: "山下公園", en: "Yamashita Park", lat: 35.445778, lng: 139.649750, note: "《如龙》滨北公园原型，午饭后沿海吹海风散步非常惬意。", tags: ["yakuza"] },
+      { id: 8, day: 2, zh: "大栈桥（国际客船航站楼）", ja: "横浜港大さん橋国際客船ターミナル", en: "Osanbashi Pier", lat: 35.45167, lng: 139.64778, note: "木质甲板看日落和港未来天际线。就在酒店旁（步行 5 分钟），看完日落可回酒店歇脚放包。", tags: [] },
+      { id: 9, day: 2, zh: "野毛（野毛町）", ja: "野毛（野毛町）", en: "Nogecho", lat: 35.447794, lng: 139.630081, note: "横滨本地人最爱的昭和居酒屋小巷，烤串关东煮林立，极有《如龙》街边小酌代入感。", tags: ["yakuza"] },
+
+      // Day 3
+      { id: 10, day: 3, zh: "三轩茶屋", ja: "三軒茶屋", en: "Sangenjaya", lat: 35.642964, lng: 139.669950, note: "《女神异闻录5》主角居住的“四轩茶屋”原型，小巷复古咖啡馆与投币洗衣店氛围拉满。", tags: ["p5"] },
+      { id: 11, day: 3, zh: "胡萝卜塔", ja: "キャロットタワー", en: "Carrot Tower", lat: 35.6437, lng: 139.6691, note: "三轩茶屋地标，可免费登上高空观景层俯瞰世田谷街景。", tags: ["p5"] },
+      { id: 12, day: 3, zh: "涉谷十字路口", ja: "渋谷スクランブル交差点", en: "Shibuya Scramble Crossing", lat: 35.65950, lng: 139.70056, note: "P5 核心集合点与日常换乘据点，打卡忠犬八公像与涉谷核心商圈。", tags: ["p5"] },
+      { id: 13, day: 3, zh: "歌舞伎町", ja: "歌舞伎町", en: "Kabukicho", lat: 35.695447, lng: 139.702564, note: "《如龙》最经典的“神室町”原型！傍晚霓虹亮起后还原度拉满。", tags: ["yakuza"] },
+      { id: 14, day: 3, zh: "新宿黄金街", ja: "新宿ゴールデン街", en: "Shinjuku Golden Gai", lat: 35.69389, lng: 139.70472, note: "窄巷密布复古小酒馆，兼具 P5 酒吧街氛围。逛完步行至新宿三丁目站坐副都心线直达酒店楼下。", tags: ["p5", "yakuza"] },
+
+      // Day 4
+      { id: 15, day: 4, zh: "镰仓站", ja: "鎌倉駅", en: "Kamakura Station", lat: 35.31912, lng: 139.55043, note: "从横滨站乘 JR 横须贺线仅 25 分钟直达，轻松开启湘南古都慢游。", tags: [] },
+      { id: 16, day: 4, zh: "小町通", ja: "小町通り", en: "Komachi-dori Street", lat: 35.321530, lng: 139.552320, note: "镰仓最热闹的美食与手信步行街，适合边走边吃抹茶甜品和街头小吃。", tags: [] },
+      { id: 17, day: 4, zh: "鹤冈八幡宫", ja: "鶴岡八幡宮", en: "Tsurugaoka Hachimangu", lat: 35.326086, lng: 139.556436, note: "镰仓古都地标神社，12 月初有机会看到秋末红叶。", tags: [] },
+      { id: 18, day: 4, zh: "镰仓大佛（高德院）", ja: "鎌倉大仏（高徳院）", en: "Great Buddha of Kamakura", lat: 35.316838, lng: 139.535752, note: "乘江之电前往参拜露天青铜大佛（注意 16:45 闭园）。", tags: [] },
+      { id: 19, day: 4, zh: "镰仓高校前站", ja: "鎌倉高校前駅", en: "Kamakurakokomae Station", lat: 35.30667, lng: 139.50056, note: "经典江之电海岸线与平交道海景打卡点。", tags: [] },
+      { id: 20, day: 4, zh: "江之岛", ja: "江の島", en: "Enoshima", lat: 35.299999, lng: 139.479828, note: "傍晚吹海风、吃吻仔鱼盖饭，冬季晴天看日落极有机会远眺富士山剪影。", tags: [] },
+
+      // Day 5
+      { id: 21, day: 5, zh: "秋叶原电器街", ja: "秋葉原電気街", en: "Akihabara Electric Town", lat: 35.69832, lng: 139.77322, note: "P5 打卡游戏厅、复古电玩店与主题咖啡馆的御宅圣地（店铺多在 10-11 点开门）。", tags: ["p5"] },
+      { id: 22, day: 5, zh: "秋叶原无线电会馆", ja: "秋葉原ラジオ会館", en: "Akihabara Radio Kaikan", lat: 35.6979, lng: 139.7720, note: "多层手办模型与游戏周边大楼，淘 P5 与《如龙》谷子首选。", tags: ["p5", "yakuza"] },
+      { id: 23, day: 5, zh: "神田神社（神田明神）", ja: "神田神社（神田明神）", en: "Kanda Myojin Shrine", lat: 35.70145, lng: 139.767517, note: "秋叶原步行约 10 分钟可达，朱红社殿大气清静，有特色动漫联名御守。", tags: [] },
+      { id: 24, day: 5, zh: "东京站", ja: "東京駅", en: "Tokyo Station", lat: 35.680965, lng: 139.76738, note: "JR 往南 2 站可达，地下街吃拉面、买齐东京限定伴手礼，随后乘京滨东北线直达关内站回酒店。", tags: [] },
+
+      // Day 6
+      { id: 25, day: 6, zh: "港见丘公园", ja: "港の見える丘公園", en: "Harbor View Park", lat: 35.439889, lng: 139.655000, note: "楼下坐 1 站到元町・中华街站乘直梯上山，俯瞰横滨港与海湾大桥，周边西洋馆很出片。", tags: [] },
+      { id: 26, day: 6, zh: "横滨元町商店街", ja: "横浜元町ショッピングストリート", en: "Yokohama Motomachi Shopping Street", lat: 35.440425, lng: 139.649686, note: "从山坡顺路往下走，欧式面包房、咖啡馆与精品小店云集，适合悠闲早午餐。", tags: [] },
+      { id: 27, day: 6, zh: "合味道纪念馆", ja: "カップヌードルミュージアム 横浜", en: "Cup Noodles Museum Yokohama", lat: 35.455472, lng: 139.638861, note: "周五正常开放（周二闭馆），可亲手彩绘并定制专属口味杯面带回家。", tags: [] },
+      { id: 28, day: 6, zh: "横滨港未来21", ja: "横浜みなとみらい21", en: "Yokohama Minato Mirai 21", lat: 35.458, lng: 139.632, note: "海滨公园晒太阳吹海风，晚上在横滨站或港未来商圈吃顿大餐并打包大部分行李。", tags: [] },
+
+      // Day 7
+      { id: 29, day: 7, zh: "三井奥特莱斯 横滨港湾（轻松版）", ja: "三井アウトレットパーク 横浜ベイサイド", en: "Mitsui Outlet Park Yokohama Bayside", lat: 35.379500, lng: 139.646389, note: "方案 A：不想进东京的话，在横滨海滨奥莱或横滨站商场轻松扫货补齐药妆。", tags: ["opt"] },
+      { id: 30, day: 7, zh: "吉祥寺（巡礼版）", ja: "吉祥寺", en: "Kichijoji", lat: 35.70023, lng: 139.58609, note: "方案 B：P5R 经典新增街区，文艺商店街、古着店与爵士酒吧氛围极佳。", tags: ["p5", "opt"] },
+      { id: 31, day: 7, zh: "井之头恩赐公园（巡礼版）", ja: "井の頭恩賜公園", en: "Inokashira Park", lat: 35.6997, lng: 139.5740, note: "方案 B：紧邻吉祥寺，12 月初湖景与残秋树影非常舒服，下午 15:00 左右回横滨取行李。", tags: ["p5", "opt"] },
+      { id: 32, day: 7, zh: "羽田机场 T3（晚班机返沪）", ja: "羽田空港 第3ターミナル", en: "Haneda Airport Terminal 3", lat: 35.5446, lng: 139.7681, note: "起飞前 3.5 小时从酒店取行李出发（日本大通站 → 横滨站转京急线 → 羽田 T3，约 45-50 分钟）。", tags: [] }
+    ];
+
+    // Init Map
+    const map = L.map("map", { zoomControl: true }).setView([35.48, 139.64], 11);
+
+    const tileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+      referrerPolicy: "strict-origin-when-cross-origin"
+    }).addTo(map);
+
+    let tileWarned = false;
+    tileLayer.on("tileerror", () => {
+      if (tileWarned) return;
+      tileWarned = true;
+      console.warn(
+        "地图瓦片加载失败。请确认你是通过本地静态服务器（例如 http://localhost:8000）打开本文件，而不是双击以 file:// 方式打开。"
+      );
+    });
+
+    let activeDay = 0;
+    let selectedSpotId = null;
+    let showLines = true;
+    const markersLayer = L.layerGroup().addTo(map);
+    const linesLayer = L.layerGroup().addTo(map);
+    const markerById = {};
+
+    // Always-visible Hotel Marker
+    const hotelIcon = L.divIcon({
+      className: "",
+      html: `<div class="hotel-pin" title="${HOTEL.en}">🏨</div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+      popupAnchor: [0, -18]
+    });
+    const hotelMarker = L.marker([HOTEL.lat, HOTEL.lng], { icon: hotelIcon, zIndexOffset: 1000 })
+      .addTo(map)
+      .bindPopup(`
+        <div class="popup-box">
+          <h3>🏨 ${HOTEL.zh}</h3>
+          <div class="popup-sub">${HOTEL.ja}<br>${HOTEL.en}</div>
+          <div class="popup-note">${HOTEL.note}</div>
+          <a class="popup-btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(HOTEL.en + ' ' + HOTEL.address)}">在 Google Maps 中打开</a>
+        </div>
+      `);
+
+    function gmapsUrl(spot) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.ja + ' ' + spot.en)}`;
+    }
+
+    function renderFilterBar() {
+      const bar = document.getElementById("filterBar");
+      bar.innerHTML = "";
+      Object.keys(DAYS).forEach((k) => {
+        const d = Number(k);
+        const info = DAYS[d];
+        const btn = document.createElement("button");
+        btn.className = "day-btn" + (activeDay === d ? " active" : "");
+        if (activeDay === d) {
+          btn.style.background = info.color;
+        }
+        btn.innerHTML = `<span class="day-dot" style="background:${activeDay === d ? '#fff' : info.color}"></span>${info.short}`;
+        btn.onclick = () => {
+          activeDay = d;
+          selectedSpotId = null;
+          renderAll(true);
+        };
+        bar.appendChild(btn);
+      });
+    }
+
+    function renderSidebar() {
+      const info = DAYS[activeDay];
+      const summary = document.getElementById("daySummary");
+      summary.innerHTML = `
+        <h2><span class="day-dot" style="background:${info.color};width:12px;height:12px;"></span>${info.title}</h2>
+        <div class="transit-box" style="border-left-color:${info.color}">${info.transit}</div>
+      `;
+
+      const list = document.getElementById("spotList");
+      list.innerHTML = "";
+      const filtered = activeDay === 0 ? SPOTS : SPOTS.filter(s => s.day === activeDay);
+
+      filtered.forEach(spot => {
+        const color = DAYS[spot.day].color;
+        const card = document.createElement("div");
+        card.className = "spot-card" + (selectedSpotId === spot.id ? " active" : "");
+        card.id = `spot-card-${spot.id}`;
+
+        let tagsHtml = `<span class="tag tag-day">Day ${spot.day}</span>`;
+        if (spot.tags.includes("p5")) tagsHtml += `<span class="tag tag-p5">P5 巡礼</span>`;
+        if (spot.tags.includes("yakuza")) tagsHtml += `<span class="tag tag-yakuza">如龙 巡礼</span>`;
+        if (spot.tags.includes("opt")) tagsHtml += `<span class="tag tag-opt">弹性二选一</span>`;
+
+        card.innerHTML = `
+          <div class="spot-num" style="background:${color}">${spot.id}</div>
+          <div class="spot-body">
+            <div class="spot-header">
+              <div class="spot-zh">${spot.zh}</div>
+            </div>
+            <div class="spot-names">${spot.ja} · ${spot.en}</div>
+            <div class="spot-note">${spot.note}</div>
+            <div class="spot-footer">
+              <div class="tags">${tagsHtml}</div>
+              <a class="gmaps-link" target="_blank" href="${gmapsUrl(spot)}" onclick="event.stopPropagation()">导航 ↗</a>
+            </div>
+          </div>
+        `;
+        card.onclick = () => selectSpot(spot.id, true);
+        list.appendChild(card);
+      });
+    }
+
+    function renderMap(shouldFit) {
+      markersLayer.clearLayers();
+      linesLayer.clearLayers();
+      Object.keys(markerById).forEach(k => delete markerById[k]);
+
+      const filtered = activeDay === 0 ? SPOTS : SPOTS.filter(s => s.day === activeDay);
+      const boundsPts = [[HOTEL.lat, HOTEL.lng]];
+
+      const daysToDraw = activeDay === 0 ? [1,2,3,4,5,6,7] : [activeDay];
+      if (showLines) {
+        daysToDraw.forEach(d => {
+          const daySpots = SPOTS.filter(s => s.day === d);
+          let latlngs = daySpots.map(s => [s.lat, s.lng]);
+          if (d === 2 || d === 6) {
+            latlngs = [[HOTEL.lat, HOTEL.lng], ...latlngs];
+          }
+          if (latlngs.length >= 2) {
+            L.polyline(latlngs, {
+              color: DAYS[d].color,
+              weight: activeDay === 0 ? 2.5 : 3.5,
+              opacity: activeDay === 0 ? 0.55 : 0.8,
+              dashArray: d === 7 ? "6, 8" : null
+            }).addTo(linesLayer);
+          }
+        });
+      }
+
+      filtered.forEach(spot => {
+        const color = DAYS[spot.day].color;
+        const isSel = selectedSpotId === spot.id;
+        const icon = L.divIcon({
+          className: "",
+          html: `<div class="custom-pin ${isSel ? 'selected' : ''}" style="background:${color}">${spot.id}</div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+          popupAnchor: [0, -16]
+        });
+
+        const marker = L.marker([spot.lat, spot.lng], { icon, zIndexOffset: isSel ? 900 : 100 })
+          .addTo(markersLayer)
+          .bindPopup(`
+            <div class="popup-box">
+              <h3>#${spot.id} ${spot.zh}</h3>
+              <div class="popup-sub">${spot.ja}<br>${spot.en} · Day ${spot.day}</div>
+              <div class="popup-note">${spot.note}</div>
+              <a class="popup-btn" target="_blank" href="${gmapsUrl(spot)}">在 Google Maps 中导航</a>
+            </div>
+          `);
+
+        marker.on("click", () => selectSpot(spot.id, false));
+        markerById[spot.id] = marker;
+        boundsPts.push([spot.lat, spot.lng]);
+      });
+
+      if (shouldFit && boundsPts.length > 0) {
+        const bounds = L.latLngBounds(boundsPts);
+        map.fitBounds(bounds, { padding: [45, 45], maxZoom: 15 });
+      }
+    }
+
+    function selectSpot(id, panToMap) {
+      selectedSpotId = id;
+      renderSidebar();
+      renderMap(false);
+
+      const spot = SPOTS.find(s => s.id === id);
+      const marker = markerById[id];
+      if (spot && marker) {
+        if (panToMap) {
+          map.setView([spot.lat, spot.lng], Math.max(map.getZoom(), 14), { animate: true });
+        }
+        marker.openPopup();
+      }
+
+      const cardEl = document.getElementById(`spot-card-${id}`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+
+    function renderAll(shouldFit) {
+      renderFilterBar();
+      renderSidebar();
+      renderMap(shouldFit);
+    }
+
+    document.getElementById("focusHotelBtn").onclick = () => {
+      map.setView([HOTEL.lat, HOTEL.lng], 15, { animate: true });
+      hotelMarker.openPopup();
+    };
+
+    document.getElementById("fitBoundsBtn").onclick = () => {
+      renderMap(true);
+    };
+
+    document.getElementById("toggleLinesBtn").onclick = () => {
+      showLines = !showLines;
+      renderMap(false);
+    };
+
+    // Initial render
+    renderAll(true);
+  </script>
+</body>
+</html>

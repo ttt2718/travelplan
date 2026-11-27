@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>横滨 + 东京 + 镰仓 7天行程交互地图 v5（必玩地标 + P5 + 如龙 + 命运石之门）</title>
+  <title>横滨 + 东京 + 镰仓 7天行程交互地图 v6（含每个景点实景图 + 必玩地标 + P5 + 如龙 + 命运石之门）</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
@@ -96,7 +96,7 @@
     }
 
     .sidebar {
-      width: 430px;
+      width: 455px;
       max-width: 100%;
       background: var(--bg);
       border-right: 1px solid var(--border);
@@ -182,6 +182,77 @@
     .spot-zh { font-size: 14.5px; font-weight: 700; color: var(--text); }
     .spot-names { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
     .spot-note { font-size: 12.5px; color: #334155; margin-top: 6px; line-height: 1.45; }
+
+    /* Embedded Photo Gallery in Sidebar Card */
+    .spot-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 9px;
+    }
+    .spot-gallery.count-1 { grid-template-columns: 1fr; }
+    .spot-gallery.count-2 { grid-template-columns: repeat(2, 1fr); }
+    .spot-gallery.hidden { display: none; }
+
+    .photo-thumb-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 7px;
+      overflow: hidden;
+      background: #e2e8f0;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    .spot-gallery.count-1 .photo-thumb-wrap {
+      aspect-ratio: 16 / 9;
+      max-height: 150px;
+    }
+    .photo-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.25s ease;
+      cursor: zoom-in;
+    }
+    .photo-thumb-wrap:hover .photo-thumb {
+      transform: scale(1.06);
+    }
+    .photo-skeleton {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .photo-empty {
+      font-size: 11px;
+      color: #94a3b8;
+      padding: 6px 8px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border: 1px dashed #cbd5e1;
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .photo-retry-btn {
+      border: none;
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .photo-retry-btn:hover { background: #cbd5e1; }
+
     .spot-footer {
       display: flex;
       align-items: center;
@@ -275,9 +346,29 @@
       box-shadow: 0 3px 10px rgba(0,0,0,0.45);
     }
 
-    .popup-box { min-width: 230px; font-family: inherit; }
+    /* Popup Styles */
+    .leaflet-popup-content { margin: 11px 13px; }
+    .popup-box { width: 275px; max-width: 78vw; font-family: inherit; }
     .popup-box h3 { font-size: 14px; margin-bottom: 3px; color: #0f172a; }
     .popup-sub { font-size: 11.5px; color: #64748b; margin-bottom: 6px; line-height: 1.35; }
+    .popup-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin: 7px 0;
+    }
+    .popup-gallery.count-1 { grid-template-columns: 1fr; }
+    .popup-gallery.count-2 { grid-template-columns: repeat(2, 1fr); }
+    .popup-gallery img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 5px;
+      cursor: zoom-in;
+      display: block;
+      background: #e2e8f0;
+    }
+    .popup-gallery.count-1 img { aspect-ratio: 16 / 9; max-height: 135px; }
     .popup-note { font-size: 12.5px; color: #334155; line-height: 1.45; margin-bottom: 8px; }
     .popup-btn {
       display: inline-block;
@@ -289,6 +380,80 @@
       padding: 5px 10px;
       border-radius: 6px;
     }
+
+    /* Lightbox Modal */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.9);
+      z-index: 3000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+    .lightbox.open { display: flex; }
+    .lightbox-inner {
+      position: relative;
+      max-width: 92vw;
+      max-height: 82vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox-img {
+      max-width: 90vw;
+      max-height: 78vh;
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+      object-fit: contain;
+      background: #0f172a;
+    }
+    .lightbox-caption {
+      color: #e2e8f0;
+      font-size: 13px;
+      margin-top: 12px;
+      text-align: center;
+      max-width: 82vw;
+      line-height: 1.45;
+    }
+    .lightbox-close {
+      position: fixed;
+      top: 16px;
+      right: 20px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.28);
+      background: rgba(15,23,42,0.7);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox-nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.28);
+      background: rgba(15,23,42,0.7);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox-prev { left: 16px; }
+    .lightbox-next { right: 16px; }
+    .lightbox-close:hover, .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
 
     @media (max-width: 820px) {
       body { height: auto; overflow: auto; }
@@ -302,8 +467,8 @@
 
   <header>
     <div class="header-title">
-      <h1>横滨 + 东京 + 镰仓 7天行程交互地图 v5（必玩地标 + P5 + 如龙 + 命运石之门）</h1>
-      <p>11/29（周日）中午抵羽田 — 12/05（周六）晚返上海 · 国土地理院地图瓦片</p>
+      <h1>横滨 + 东京 + 镰仓 7天行程交互地图 v6（含景点实景图）</h1>
+      <p>11/29（周日）中午抵羽田 — 12/05（周六）晚返上海 · 国土地理院地图 + 每景点 1–3 张代表性实景图（点击可放大）</p>
     </div>
     <div class="hotel-badge" id="focusHotelBtn" title="点击在地图上定位酒店">
       <span>🏨</span>
@@ -322,6 +487,7 @@
       <div id="map"></div>
       <div class="map-controls-overlay">
         <button class="map-ctrl-btn" id="fitBoundsBtn">🎯 适配当前视野</button>
+        <button class="map-ctrl-btn active" id="togglePhotosBtn">🖼️ 显示/隐藏实景图</button>
         <button class="map-ctrl-btn active" id="toggleBackupBtn">🚶 显示/隐藏备选点</button>
         <button class="map-ctrl-btn" id="toggleLinesBtn">〰️ 隐藏/显示连线</button>
         <button class="map-ctrl-btn" id="toggleTileStyleBtn">🗺️ 切换国土地理院淡色图</button>
@@ -329,15 +495,29 @@
     </section>
   </main>
 
+  <!-- Fullscreen Photo Lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+    <button class="lightbox-close" id="lbClose" title="关闭 (ESC)">✕</button>
+    <button class="lightbox-nav lightbox-prev" id="lbPrev" title="上一张">‹</button>
+    <div class="lightbox-inner">
+      <img class="lightbox-img" id="lbImg" src="" alt="" />
+    </div>
+    <button class="lightbox-nav lightbox-next" id="lbNext" title="下一张">›</button>
+    <div class="lightbox-caption" id="lbCaption"></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const HOTEL = {
+      id: "HOTEL",
       zh: "横滨海港馨乐庭酒店（你的住处）",
       ja: "シタディーン ハーバーフロント 横浜",
       en: "Citadines Harbour Front Yokohama",
       address: "5-2 Nihonodori, Naka Ward, Yokohama, Kanagawa 231-0021",
       lat: 35.4468,
       lng: 139.6425,
+      wikiJa: "日本大通り駅",
+      commonsQuery: "Nihon-odori Yokohama",
       note: "日本大通站 4 号出口直达！楼下港未来线可直通涉谷/新宿三丁目；步行 10 分钟到 JR 关内站直达秋叶原/东京站；步行 5–8 分钟即达大栈桥、山下公园、中华街。"
     };
 
@@ -346,7 +526,7 @@
         short: "全部总览",
         color: "#0f172a",
         title: "7 天行程总览（实心圆=核心点 · 虚线圆=备选/弹性点）",
-        transit: "核心优势：酒店楼下【日本大通站】直通涉谷/新宿三丁目，步行 10 分钟【JR 关内站】直达秋叶原/东京站。已整合东京必玩（浅草寺、SHIBUYA SKY、东京塔/麻布台）与横滨必玩（地标大厦、日本大通银杏、冰川丸、山手西洋馆）。",
+        transit: "核心优势：酒店楼下【日本大通站】直通涉谷/新宿三丁目，步行 10 分钟【JR 关内站】直达秋叶原/东京站。每张卡片与地图弹窗均已嵌入 1–3 张景点实景图（点击图片可全屏放大）。",
         walkTip: ""
       },
       1: {
@@ -402,77 +582,260 @@
 
     const SPOTS = [
       // Day 1
-      { id: "1", day: 1, zh: "羽田机场", ja: "羽田空港", en: "Haneda Airport", lat: 35.5494, lng: 139.7798, note: "11/29 中午抵达，乘京急线 25 分钟直达横滨站，再换港未来线 3 站到酒店。", tags: [] },
-      { id: "2", day: 1, zh: "横滨红砖仓库", ja: "横浜赤レンガ倉庫", en: "Yokohama Red Brick Warehouse", lat: 35.4526, lng: 139.6429, note: "酒店步行约 10 分钟即达。11 月底已有浓厚圣诞集市与暖黄灯光氛围。", tags: ["must"] },
-      { id: "3", day: 1, zh: "横滨宇宙乐园", ja: "よこはまコスモワールド", en: "Yokohama Cosmo World", lat: 35.4551, lng: 139.6368, note: "打卡横滨标志性大摩天轮夜景（周四闭园，周日正常开放）。", tags: ["must"] },
-      { id: "4", day: 1, zh: "横滨空中缆车（运河公园→樱木町）", ja: "YOKOHAMA AIR CABIN 運河パーク駅", en: "YOKOHAMA AIR CABIN Unga Park Station", lat: 35.4539, lng: 139.6377, note: "反向乘坐城市空中缆车滑行至樱木町站，俯瞰港未来海湾夜景并吃晚餐。", tags: ["must"] },
-      { id: "Y1", day: 1, zh: "横滨地标大厦（69F 空中花园）", ja: "横浜ランドマークタワー スカイガーデン", en: "Yokohama Landmark Tower Sky Garden", lat: 35.4546, lng: 139.6314, note: "【新增横滨必玩】空中缆车终点樱木町步行 3 分钟直达！搭乘超高速电梯登 69 楼，360° 俯瞰刚才逛过的港未来海湾与摩天轮夜景。", tags: ["must"] },
+      { id: "1", day: 1, zh: "羽田机场", ja: "羽田空港", en: "Haneda Airport", lat: 35.5494, lng: 139.7798, wikiJa: "東京国際空港", commonsQuery: "Haneda Airport Terminal 3", note: "11/29 中午抵达，乘京急线 25 分钟直达横滨站，再换港未来线 3 站到酒店。", tags: [] },
+      { id: "2", day: 1, zh: "横滨红砖仓库", ja: "横浜赤レンガ倉庫", en: "Yokohama Red Brick Warehouse", lat: 35.4526, lng: 139.6429, wikiJa: "横浜赤レンガ倉庫", commonsQuery: "Yokohama Red Brick Warehouse", note: "酒店步行约 10 分钟即达。11 月底已有浓厚圣诞集市与暖黄灯光氛围。", tags: ["must"] },
+      { id: "3", day: 1, zh: "横滨宇宙乐园", ja: "よこはまコスモワールド", en: "Yokohama Cosmo World", lat: 35.4551, lng: 139.6368, wikiJa: "よこはまコスモワールド", commonsQuery: "Cosmo Clock 21 Yokohama", note: "打卡横滨标志性大摩天轮夜景（周四闭园，周日正常开放）。", tags: ["must"] },
+      { id: "4", day: 1, zh: "横滨空中缆车（运河公园→樱木町）", ja: "YOKOHAMA AIR CABIN 運河パーク駅", en: "YOKOHAMA AIR CABIN Unga Park Station", lat: 35.4539, lng: 139.6377, wikiJa: "YOKOHAMA AIR CABIN", commonsQuery: "YOKOHAMA AIR CABIN", note: "反向乘坐城市空中缆车滑行至樱木町站，俯瞰港未来海湾夜景并吃晚餐。", tags: ["must"] },
+      { id: "Y1", day: 1, zh: "横滨地标大厦（69F 空中花园）", ja: "横浜ランドマークタワー スカイガーデン", en: "Yokohama Landmark Tower Sky Garden", lat: 35.4546, lng: 139.6314, wikiJa: "横浜ランドマークタワー", commonsQuery: "Yokohama Landmark Tower", note: "【新增横滨必玩】空中缆车终点樱木町步行 3 分钟直达！搭乘超高速电梯登 69 楼，360° 俯瞰刚才逛过的港未来海湾与摩天轮夜景。", tags: ["must"] },
 
       // Day 2
-      { id: "Y2", day: 2, zh: "日本大通银杏大道", ja: "日本大通り イチョウ並木", en: "Nihon-odori Ginkgo Avenue", lat: 35.4477, lng: 139.6423, note: "【新增横滨必玩】就在酒店门口！11 月底–12 月初正是银杏全黄期，历史西洋建筑搭配满街金黄银杏，出门顺路拍照极出片。", tags: ["must"] },
-      { id: "5", day: 2, zh: "伊势佐木町", ja: "伊勢佐木町", en: "Isezakicho", lat: 35.4426, lng: 139.6327, note: "《如龙7/8》“伊势佐木异人町”主干道原型，酒店步行约 12 分钟可达。", tags: ["yakuza"] },
-      { id: "6", day: 2, zh: "横滨中华街", ja: "横浜中華街", en: "Yokohama Chinatown", lat: 35.4426, lng: 139.6456, note: "《如龙》中华街原型，红灯笼牌楼极有辨识度，适合边逛边吃午饭。", tags: ["yakuza", "must"] },
-      { id: "7", day: 2, zh: "山下公园", ja: "山下公園", en: "Yamashita Park", lat: 35.4458, lng: 139.6500, note: "《如龙》滨北公园原型，午饭后沿海吹海风散步非常惬意。", tags: ["yakuza", "must"] },
-      { id: "Y3", day: 2, zh: "日本邮船 冰川丸", ja: "日本郵船氷川丸", en: "NYK Hikawa Maru", lat: 35.4465, lng: 139.6515, note: "【新增横滨必玩】就停泊在山下公园岸边栈桥！日本现存最古老的远洋货客船，可登船参观复古头等舱与甲板（注意周一闭馆，若周一未开可在岸边打卡外观）。", tags: ["must"] },
-      { id: "8", day: 2, zh: "大栈桥（国际客船航站楼）", ja: "横浜港大さん橋国際客船ターミナル", en: "Osanbashi Pier", lat: 35.4519, lng: 139.6478, note: "木质甲板看日落和港未来天际线。就在酒店旁（步行 5 分钟），看完可回酒店歇脚。", tags: ["must"] },
-      { id: "9", day: 2, zh: "野毛（野毛町）", ja: "野毛（野毛町）", en: "Nogecho", lat: 35.4475, lng: 139.6295, note: "横滨本地人最爱的昭和居酒屋小巷，烤串关东煮林立，极有《如龙》小酌代入感。", tags: ["yakuza"] },
+      { id: "Y2", day: 2, zh: "日本大通银杏大道", ja: "日本大通り イチョウ並木", en: "Nihon-odori Ginkgo Avenue", lat: 35.4477, lng: 139.6423, wikiJa: "日本大通り", commonsQuery: "Nihon-odori Yokohama ginkgo", note: "【新增横滨必玩】就在酒店门口！11 月底–12 月初正是银杏全黄期，历史西洋建筑搭配满街金黄银杏，出门顺路拍照极出片。", tags: ["must"] },
+      { id: "5", day: 2, zh: "伊势佐木町", ja: "伊勢佐木町", en: "Isezakicho", lat: 35.4426, lng: 139.6327, wikiJa: "伊勢佐木町", commonsQuery: "Isezakicho Yokohama", note: "《如龙7/8》“伊势佐木异人町”主干道原型，酒店步行约 12 分钟可达。", tags: ["yakuza"] },
+      { id: "6", day: 2, zh: "横滨中华街", ja: "横浜中華街", en: "Yokohama Chinatown", lat: 35.4426, lng: 139.6456, wikiJa: "横浜中華街", commonsQuery: "Yokohama Chinatown", note: "《如龙》中华街原型，红灯笼牌楼极有辨识度，适合边逛边吃午饭。", tags: ["yakuza", "must"] },
+      { id: "7", day: 2, zh: "山下公园", ja: "山下公園", en: "Yamashita Park", lat: 35.4458, lng: 139.6500, wikiJa: "山下公園", commonsQuery: "Yamashita Park Yokohama", note: "《如龙》滨北公园原型，午饭后沿海吹海风散步非常惬意。", tags: ["yakuza", "must"] },
+      { id: "Y3", day: 2, zh: "日本邮船 冰川丸", ja: "日本郵船氷川丸", en: "NYK Hikawa Maru", lat: 35.4465, lng: 139.6515, wikiJa: "氷川丸", commonsQuery: "Hikawa Maru Yokohama", note: "【新增横滨必玩】就停泊在山下公园岸边栈桥！日本现存最古老的远洋货客船，可登船参观复古头等舱与甲板（注意周一闭馆，若周一未开可在岸边打卡外观）。", tags: ["must"] },
+      { id: "8", day: 2, zh: "大栈桥（国际客船航站楼）", ja: "横浜港大さん橋国際客船ターミナル", en: "Osanbashi Pier", lat: 35.4519, lng: 139.6478, wikiJa: "大さん橋", commonsQuery: "Osanbashi Pier Yokohama", note: "木质甲板看日落和港未来天际线。就在酒店旁（步行 5 分钟），看完可回酒店歇脚。", tags: ["must"] },
+      { id: "9", day: 2, zh: "野毛（野毛町）", ja: "野毛（野毛町）", en: "Nogecho", lat: 35.4475, lng: 139.6295, wikiJa: "野毛町", commonsQuery: "Noge Yokohama", note: "横滨本地人最爱的昭和居酒屋小巷，烤串关东煮林立，极有《如龙》小酌代入感。", tags: ["yakuza"] },
 
-      // Day 3 (Tokyo West + SHIBUYA SKY + Citywalk Backups)
-      { id: "10", day: 3, zh: "三轩茶屋", ja: "三軒茶屋", en: "Sangenjaya", lat: 35.6436, lng: 139.6709, note: "《女神异闻录5》主角居住的“四轩茶屋”原型，小巷复古咖啡馆与投币洗衣店氛围拉满。", tags: ["p5"] },
-      { id: "11", day: 3, zh: "胡萝卜塔", ja: "キャロットタワー", en: "Carrot Tower", lat: 35.6437, lng: 139.6691, note: "三轩茶屋地标，免费登上高空观景层俯瞰世田谷街景。", tags: ["p5"] },
-      { id: "W1", day: 3, backup: true, zh: "下北泽（备选 Citywalk）", ja: "下北沢", en: "Shimokitazawa", lat: 35.6616, lng: 139.6682, note: "从三轩茶屋沿茶泽通往北步行约 25 分钟可达！复古古着店、唱片店、Livehouse 与汤咖喱圣地，逛完坐井之头线 4 站回涉谷。", tags: ["walk"] },
-      { id: "12", day: 3, zh: "涉谷十字路口", ja: "渋谷スクランブル交差点", en: "Shibuya Scramble Crossing", lat: 35.6595, lng: 139.7004, note: "P5 核心集合点与日常换乘据点，打卡忠犬八公像与涉谷核心商圈。", tags: ["p5", "must"] },
-      { id: "T1", day: 3, zh: "SHIBUYA SKY（涉谷天空）", ja: "SHIBUYA SKY（渋谷スカイ）", en: "SHIBUYA SKY", lat: 35.6584, lng: 139.7022, note: "【新增东京必玩】涉谷站上盖 360° 露天观景台！务必提前 2–4 周在官网预约门票；若抢到日落场，可直接替代备选的东京都厅。", tags: ["must"] },
-      { id: "W2", day: 3, backup: true, zh: "宫下公园（备选 Citywalk）", ja: "渋谷区立宮下公園", en: "MIYASHITA PARK", lat: 35.6620, lng: 139.7019, note: "涉谷十字路口往北走 5 分钟，潮流商业体+屋顶草坪公园，是涉谷北上原宿步行的绝佳起点。", tags: ["walk"] },
-      { id: "W3", day: 3, backup: true, zh: "猫街 & 表参道（备选 Citywalk）", ja: "キャットストリート / 表参道", en: "Cat Street & Omotesando", lat: 35.6673, lng: 139.7064, note: "从宫下公园一路逛进猫街（步行约 20 分钟），遍布潮牌买手店、独立咖啡馆与大师建筑。", tags: ["walk"] },
-      { id: "W4", day: 3, backup: true, zh: "明治神宫（备选 Citywalk）", ja: "明治神宮", en: "Meiji Jingu Shrine", lat: 35.6764, lng: 139.6993, note: "原宿站旁，参道古树参天，12 月初秋色犹存。逛完可从北参道/代代木继续步行约 20 分钟直达新宿。", tags: ["walk", "p5", "must"] },
-      { id: "W5", day: 3, backup: true, zh: "东京都厅展望室（备选免费夜景）", ja: "東京都庁展望室", en: "Tokyo Metropolitan Government Building", lat: 35.6896, lng: 139.6917, note: "新宿西口免费 45 楼高空观景台（若没抢到 SHIBUYA SKY 日落票，这里是绝佳替代），随后步行 15 分钟去歌舞伎町。", tags: ["walk"] },
-      { id: "13", day: 3, zh: "歌舞伎町", ja: "歌舞伎町", en: "Kabukicho", lat: 35.6938, lng: 139.7034, note: "《如龙》最经典的“神室町”原型！傍晚霓虹亮起后还原度拉满。", tags: ["yakuza", "must"] },
-      { id: "14", day: 3, zh: "新宿黄金街", ja: "新宿ゴールデン街", en: "Shinjuku Golden Gai", lat: 35.6940, lng: 139.7047, note: "窄巷密布复古小酒馆。逛完步行至新宿三丁目站坐副都心线直达酒店楼下。", tags: ["p5", "yakuza"] },
+      // Day 3
+      { id: "10", day: 3, zh: "三轩茶屋", ja: "三軒茶屋", en: "Sangenjaya", lat: 35.6436, lng: 139.6709, wikiJa: "三軒茶屋", commonsQuery: "Sangenjaya Tokyo", note: "《女神异闻录5》主角居住的“四轩茶屋”原型，小巷复古咖啡馆与投币洗衣店氛围拉满。", tags: ["p5"] },
+      { id: "11", day: 3, zh: "胡萝卜塔", ja: "キャロットタワー", en: "Carrot Tower", lat: 35.6437, lng: 139.6691, wikiJa: "キャロットタワー", commonsQuery: "Carrot Tower Sangenjaya", note: "三轩茶屋地标，免费登上高空观景层俯瞰世田谷街景。", tags: ["p5"] },
+      { id: "W1", day: 3, backup: true, zh: "下北泽（备选 Citywalk）", ja: "下北沢", en: "Shimokitazawa", lat: 35.6616, lng: 139.6682, wikiJa: "下北沢", commonsQuery: "Shimokitazawa Tokyo", note: "从三轩茶屋沿茶泽通往北步行约 25 分钟可达！复古古着店、唱片店、Livehouse 与汤咖喱圣地，逛完坐井之头线 4 站回涉谷。", tags: ["walk"] },
+      { id: "12", day: 3, zh: "涉谷十字路口", ja: "渋谷スクランブル交差点", en: "Shibuya Scramble Crossing", lat: 35.6595, lng: 139.7004, wikiJa: "渋谷スクランブル交差点", commonsQuery: "Shibuya Crossing", note: "P5 核心集合点与日常换乘据点，打卡忠犬八公像与涉谷核心商圈。", tags: ["p5", "must"] },
+      { id: "T1", day: 3, zh: "SHIBUYA SKY（涉谷天空）", ja: "SHIBUYA SKY（渋谷スカイ）", en: "SHIBUYA SKY", lat: 35.6584, lng: 139.7022, wikiJa: "渋谷スクランブルスクエア", commonsQuery: "Shibuya Sky Scramble Square", note: "【新增东京必玩】涉谷站上盖 360° 露天观景台！务必提前 2–4 周在官网预约门票；若抢到日落场，可直接替代备选的东京都厅。", tags: ["must"] },
+      { id: "W2", day: 3, backup: true, zh: "宫下公园（备选 Citywalk）", ja: "渋谷区立宮下公園", en: "MIYASHITA PARK", lat: 35.6620, lng: 139.7019, wikiJa: "宮下公園", commonsQuery: "Miyashita Park Shibuya", note: "涉谷十字路口往北走 5 分钟，潮流商业体+屋顶草坪公园，是涉谷北上原宿步行的绝佳起点。", tags: ["walk"] },
+      { id: "W3", day: 3, backup: true, zh: "猫街 & 表参道（备选 Citywalk）", ja: "キャットストリート / 表参道", en: "Cat Street & Omotesando", lat: 35.6673, lng: 139.7064, wikiJa: "表参道 (原宿)", commonsQuery: "Omotesando Cat Street Tokyo", note: "从宫下公园一路逛进猫街（步行约 20 分钟），遍布潮牌买手店、独立咖啡馆与大师建筑。", tags: ["walk"] },
+      { id: "W4", day: 3, backup: true, zh: "明治神宫（备选 Citywalk）", ja: "明治神宮", en: "Meiji Jingu Shrine", lat: 35.6764, lng: 139.6993, wikiJa: "明治神宮", commonsQuery: "Meiji Jingu Shrine Tokyo", note: "原宿站旁，参道古树参天，12 月初秋色犹存。逛完可从北参道/代代木继续步行约 20 分钟直达新宿。", tags: ["walk", "p5", "must"] },
+      { id: "W5", day: 3, backup: true, zh: "东京都厅展望室（备选免费夜景）", ja: "東京都庁展望室", en: "Tokyo Metropolitan Government Building", lat: 35.6896, lng: 139.6917, wikiJa: "東京都庁舎", commonsQuery: "Tokyo Metropolitan Government Building", note: "新宿西口免费 45 楼高空观景台（若没抢到 SHIBUYA SKY 日落票，这里是绝佳替代），随后步行 15 分钟去歌舞伎町。", tags: ["walk"] },
+      { id: "13", day: 3, zh: "歌舞伎町", ja: "歌舞伎町", en: "Kabukicho", lat: 35.6938, lng: 139.7034, wikiJa: "歌舞伎町", commonsQuery: "Kabukicho Shinjuku night", note: "《如龙》最经典的“神室町”原型！傍晚霓虹亮起后还原度拉满。", tags: ["yakuza", "must"] },
+      { id: "14", day: 3, zh: "新宿黄金街", ja: "新宿ゴールデン街", en: "Shinjuku Golden Gai", lat: 35.6940, lng: 139.7047, wikiJa: "新宿ゴールデン街", commonsQuery: "Shinjuku Golden Gai", note: "窄巷密布复古小酒馆。逛完步行至新宿三丁目站坐副都心线直达酒店楼下。", tags: ["p5", "yakuza"] },
 
       // Day 4
-      { id: "15", day: 4, zh: "镰仓站", ja: "鎌倉駅", en: "Kamakura Station", lat: 35.3192, lng: 139.5504, note: "从横滨站乘 JR 横须贺线仅 25 分钟直达，轻松开启湘南古都慢游。", tags: [] },
-      { id: "16", day: 4, zh: "小町通", ja: "小町通り", en: "Komachi-dori Street", lat: 35.3218, lng: 139.5529, note: "镰仓最热闹的美食与手信步行街，适合边走边吃抹茶甜品和街头小吃。", tags: [] },
-      { id: "17", day: 4, zh: "鹤冈八幡宫", ja: "鶴岡八幡宮", en: "Tsurugaoka Hachimangu", lat: 35.3260, lng: 139.5564, note: "镰仓古都地标神社，12 月初有机会看到秋末红叶。", tags: [] },
-      { id: "18", day: 4, zh: "镰仓大佛（高德院）", ja: "鎌倉大仏（高徳院）", en: "Great Buddha of Kamakura", lat: 35.3167, lng: 139.5357, note: "乘江之电前往参拜露天青铜大佛（注意 16:45 闭园）。", tags: [] },
-      { id: "19", day: 4, zh: "镰仓高校前站", ja: "鎌倉高校前駅", en: "Kamakurakokomae Station", lat: 35.3067, lng: 139.5006, note: "经典江之电海岸线与平交道海景打卡点。", tags: [] },
-      { id: "20", day: 4, zh: "江之岛", ja: "江の島", en: "Enoshima", lat: 35.3000, lng: 139.4800, note: "傍晚吹海风、吃吻仔鱼盖饭，冬季晴天看日落极有机会远眺富士山剪影。", tags: [] },
+      { id: "15", day: 4, zh: "镰仓站", ja: "鎌倉駅", en: "Kamakura Station", lat: 35.3192, lng: 139.5504, wikiJa: "鎌倉駅", commonsQuery: "Kamakura Station Enoden", note: "从横滨站乘 JR 横须贺线仅 25 分钟直达，轻松开启湘南古都慢游。", tags: [] },
+      { id: "16", day: 4, zh: "小町通", ja: "小町通り", en: "Komachi-dori Street", lat: 35.3218, lng: 139.5529, wikiJa: "小町通り", commonsQuery: "Komachi-dori Kamakura", note: "镰仓最热闹的美食与手信步行街，适合边走边吃抹茶甜品和街头小吃。", tags: [] },
+      { id: "17", day: 4, zh: "鹤冈八幡宫", ja: "鶴岡八幡宮", en: "Tsurugaoka Hachimangu", lat: 35.3260, lng: 139.5564, wikiJa: "鶴岡八幡宮", commonsQuery: "Tsurugaoka Hachimangu Kamakura", note: "镰仓古都地标神社，12 月初有机会看到秋末红叶。", tags: [] },
+      { id: "18", day: 4, zh: "镰仓大佛（高德院）", ja: "鎌倉大仏（高徳院）", en: "Great Buddha of Kamakura", lat: 35.3167, lng: 139.5357, wikiJa: "高徳院", commonsQuery: "Kotoku-in Great Buddha Kamakura", note: "乘江之电前往参拜露天青铜大佛（注意 16:45 闭园）。", tags: [] },
+      { id: "19", day: 4, zh: "镰仓高校前站", ja: "鎌倉高校前駅", en: "Kamakurakokomae Station", lat: 35.3067, lng: 139.5006, wikiJa: "鎌倉高校前駅", commonsQuery: "Kamakurakokomae Station Enoden", note: "经典江之电海岸线与平交道海景打卡点。", tags: [] },
+      { id: "20", day: 4, zh: "江之岛", ja: "江の島", en: "Enoshima", lat: 35.3000, lng: 139.4800, wikiJa: "江の島", commonsQuery: "Enoshima Sea Candle sunset", note: "傍晚吹海风、吃吻仔鱼盖饭，冬季晴天看日落极有机会远眺富士山剪影。", tags: [] },
 
-      // Day 5 (Senso-ji + Akihabara Steins;Gate + Citywalk + Tokyo Tower)
-      { id: "T2", day: 5, zh: "浅草寺（雷门 & 仲见世通）", ja: "浅草寺（雷門・仲見世通り）", en: "Senso-ji Temple", lat: 35.7148, lng: 139.7967, note: "【新增东京必玩 · 完美错峰】秋叶原店铺多在 10–11 点开门，建议 8:30–10:00 先逛人少的浅草寺，拍完雷门和晴空塔同框后，坐筑波快线（TX）仅 2 站（4 分钟）直达秋叶原！", tags: ["must"] },
-      { id: "22", day: 5, zh: "秋叶原无线电会馆", ja: "秋葉原ラジオ会館", en: "Akihabara Radio Kaikan", lat: 35.6979, lng: 139.7720, note: "《命运石之门》头号地标——第1话时间机器坠落现场！同时也是淘 P5 / 如龙 / 石门周边谷子的核心大楼。", tags: ["sg", "p5", "yakuza"] },
-      { id: "S1", day: 5, zh: "万世桥", ja: "万世橋", en: "Manseibashi Bridge", lat: 35.6974, lng: 139.7711, note: "无线电会馆往南步行 2 分钟即达！《命运石之门》中冈部伦太郎多次走过并打电话的经典神田川河岸桥景。", tags: ["sg"] },
-      { id: "S2", day: 5, zh: "柳森神社（柳林神社原型）", ja: "柳森神社", en: "Yanagimori Shrine", lat: 35.6967, lng: 139.7736, note: "过万世桥往东步行 3 分钟即达！《命运石之门》“柳林神社”（漆原琉华家）现实原型，保留了浓郁的江户老街气息。", tags: ["sg"] },
-      { id: "21", day: 5, zh: "秋叶原电器街", ja: "秋葉原電気街", en: "Akihabara Electric Town", lat: 35.6984, lng: 139.7731, note: "P5 与《命运石之门》共同的主舞台！别忘了在街边自动贩卖机找一瓶“知识分子的饮料”Dr Pepper 打卡。", tags: ["sg", "p5", "must"] },
-      { id: "S3", day: 5, zh: "秋叶原 UDX", ja: "秋葉原UDX", en: "Akihabara UDX", lat: 35.7005, lng: 139.7726, note: "《命运石之门》高频出镜的标志性大楼（剧中称 UPX），巨大的户外屏幕和二楼连廊天桥还原度极高。", tags: ["sg"] },
-      { id: "S4", day: 5, zh: "未来道具研究所原型街区（外神田3丁目）", ja: "外神田3丁目（未来ガジェット研究所モデル周辺）", en: "Sotokanda 3-chome (Future Gadget Lab Area)", lat: 35.7023, lng: 139.7705, note: "从 UDX 往西北步行 4 分钟进入外神田3丁目巷弄！这里就是“显像管工房 + 未来道具研究所”的现实取景街角（安静拍照不打扰居民）。", tags: ["sg"] },
-      { id: "23", day: 5, zh: "神田神社（神田明神 & 明神男坂）", ja: "神田神社（神田明神・明神男坂）", en: "Kanda Myojin Shrine", lat: 35.7020, lng: 139.7679, note: "从外神田3丁目往西步行 4 分钟，正好从《命运石之门》经典陡峭台阶“明神男坂”爬进神田明神！", tags: ["sg"] },
-      { id: "E1", day: 5, backup: true, zh: "御茶之水・圣桥（备选 Citywalk）", ja: "御茶ノ水 聖橋", en: "Hijiri Bridge Ochanomizu", lat: 35.6997, lng: 139.7654, note: "神田神社往西步行 6 分钟！著名的三线电车交汇机位（《铃芽之旅》同款视角），桥南沿街全是复古吉他乐器店。", tags: ["walk"] },
-      { id: "E2", day: 5, backup: true, zh: "神保町古书街（备选 P5 圣地）", ja: "神保町古書店街", en: "Jimbocho Book Town", lat: 35.6959, lng: 139.7576, note: "从御茶之水顺坡步行 10 分钟即达！P5 买书的“神保町”现实原型，日本最大二手书街，必体验老牌复古喫茶店和欧风咖喱。", tags: ["walk", "p5"] },
-      { id: "E3", day: 5, backup: true, zh: "皇居外苑 & 丸之内仲通（备选灯饰）", ja: "皇居外苑 / 丸の内仲通り", en: "Imperial Palace & Marunouchi Naka-dori", lat: 35.6795, lng: 139.7628, note: "从神保町往南步行约 15 分钟到皇居护城河，再拐进丸之内仲通。12 月初傍晚亮起香槟金色圣诞灯饰，紧邻东京站！", tags: ["walk", "must"] },
-      { id: "24", day: 5, zh: "东京站", ja: "東京駅", en: "Tokyo Station", lat: 35.6812, lng: 139.7671, note: "红砖车站夜景、地下一番街吃拉面与买齐伴手礼，可坐京滨东北线直达关内站回酒店。", tags: ["must"] },
-      { id: "E4", day: 5, backup: true, zh: "银座中央通（备选晚间 Citywalk）", ja: "銀座中央通り", en: "Ginza Chuo-dori", lat: 35.6717, lng: 139.7650, note: "从东京站/丸之内往南步行 15 分钟即达！逛伊东屋文具、Loft 与圣诞橱窗，逛完从【JR 有乐町站】坐京滨东北线直达横滨关内站。", tags: ["walk", "must"] },
-      { id: "T3", day: 5, backup: true, zh: "东京塔 & 芝公园（备选晚间地标）", ja: "東京タワー・芝公園", en: "Tokyo Tower & Shiba Park", lat: 35.6586, lng: 139.7454, note: "【新增东京必玩 · 晚间备选】从银座/有乐町乘地铁或打车 10 分钟可达，近距离仰拍暖红东京塔夜景，结束后从新桥/浜松町坐 JR 京滨东北线直达横滨关内站。", tags: ["must", "walk"] },
+      // Day 5
+      { id: "T2", day: 5, zh: "浅草寺（雷门 & 仲见世通）", ja: "浅草寺（雷門・仲見世通り）", en: "Senso-ji Temple", lat: 35.7148, lng: 139.7967, wikiJa: "浅草寺", commonsQuery: "Sensoji Kaminarimon Tokyo", note: "【新增东京必玩 · 完美错峰】秋叶原店铺多在 10–11 点开门，建议 8:30–10:00 先逛人少的浅草寺，拍完雷门和晴空塔同框后，坐筑波快线（TX）仅 2 站（4 分钟）直达秋叶原！", tags: ["must"] },
+      { id: "22", day: 5, zh: "秋叶原无线电会馆", ja: "秋葉原ラジオ会館", en: "Akihabara Radio Kaikan", lat: 35.6979, lng: 139.7720, wikiJa: "秋葉原ラジオ会館", commonsQuery: "Akihabara Radio Kaikan", note: "《命运石之门》头号地标——第1话时间机器坠落现场！同时也是淘 P5 / 如龙 / 石门周边谷子的核心大楼。", tags: ["sg", "p5", "yakuza"] },
+      { id: "S1", day: 5, zh: "万世桥", ja: "万世橋", en: "Manseibashi Bridge", lat: 35.6974, lng: 139.7711, wikiJa: "万世橋", commonsQuery: "Manseibashi Akihabara", note: "无线电会馆往南步行 2 分钟即达！《命运石之门》中冈部伦太郎多次走过并打电话的经典神田川河岸桥景。", tags: ["sg"] },
+      { id: "S2", day: 5, zh: "柳森神社（柳林神社原型）", ja: "柳森神社", en: "Yanagimori Shrine", lat: 35.6967, lng: 139.7736, wikiJa: "柳森神社", commonsQuery: "Yanagimori Shrine Tokyo", note: "过万世桥往东步行 3 分钟即达！《命运石之门》“柳林神社”（漆原琉华家）现实原型，保留了浓郁的江户老街气息。", tags: ["sg"] },
+      { id: "21", day: 5, zh: "秋叶原电器街", ja: "秋葉原電気街", en: "Akihabara Electric Town", lat: 35.6984, lng: 139.7731, wikiJa: "秋葉原", commonsQuery: "Akihabara Electric Town street", note: "P5 与《命运石之门》共同的主舞台！别忘了在街边自动贩卖机找一瓶“知识分子的饮料”Dr Pepper 打卡。", tags: ["sg", "p5", "must"] },
+      { id: "S3", day: 5, zh: "秋叶原 UDX", ja: "秋葉原UDX", en: "Akihabara UDX", lat: 35.7005, lng: 139.7726, wikiJa: "秋葉原UDX", commonsQuery: "Akihabara UDX", note: "《命运石之门》高频出镜的标志性大楼（剧中称 UPX），巨大的户外屏幕和二楼连廊天桥还原度极高。", tags: ["sg"] },
+      { id: "S4", day: 5, zh: "未来道具研究所原型街区（外神田3丁目）", ja: "外神田3丁目（未来ガジェット研究所モデル周辺）", en: "Sotokanda 3-chome (Future Gadget Lab Area)", lat: 35.7023, lng: 139.7705, wikiJa: "外神田", commonsQuery: "Sotokanda 3-chome Akihabara", note: "从 UDX 往西北步行 4 分钟进入外神田3丁目巷弄！这里就是“显像管工房 + 未来道具研究所”的现实取景街角（安静拍照不打扰居民）。", tags: ["sg"] },
+      { id: "23", day: 5, zh: "神田神社（神田明神 & 明神男坂）", ja: "神田神社（神田明神・明神男坂）", en: "Kanda Myojin Shrine", lat: 35.7020, lng: 139.7679, wikiJa: "神田明神", commonsQuery: "Kanda Myojin Shrine Tokyo", note: "从外神田3丁目往西步行 4 分钟，正好从《命运石之门》经典陡峭台阶“明神男坂”爬进神田明神！", tags: ["sg"] },
+      { id: "E1", day: 5, backup: true, zh: "御茶之水・圣桥（备选 Citywalk）", ja: "御茶ノ水 聖橋", en: "Hijiri Bridge Ochanomizu", lat: 35.6997, lng: 139.7654, wikiJa: "聖橋", commonsQuery: "Hijiribashi Ochanomizu train", note: "神田神社往西步行 6 分钟！著名的三线电车交汇机位（《铃芽之旅》同款视角），桥南沿街全是复古吉他乐器店。", tags: ["walk"] },
+      { id: "E2", day: 5, backup: true, zh: "神保町古书街（备选 P5 圣地）", ja: "神保町古書店街", en: "Jimbocho Book Town", lat: 35.6959, lng: 139.7576, wikiJa: "神田神保町", commonsQuery: "Jimbocho bookshop Tokyo", note: "从御茶之水顺坡步行 10 分钟即达！P5 买书的“神保町”现实原型，日本最大二手书街，必体验老牌复古喫茶店和欧风咖喱。", tags: ["walk", "p5"] },
+      { id: "E3", day: 5, backup: true, zh: "皇居外苑 & 丸之内仲通（备选灯饰）", ja: "皇居外苑 / 丸の内仲通り", en: "Imperial Palace & Marunouchi Naka-dori", lat: 35.6795, lng: 139.7628, wikiJa: "丸の内仲通り", commonsQuery: "Marunouchi Naka-dori illumination", note: "从神保町往南步行约 15 分钟到皇居护城河，再拐进丸之内仲通。12 月初傍晚亮起香槟金色圣诞灯饰，紧邻东京站！", tags: ["walk", "must"] },
+      { id: "24", day: 5, zh: "东京站", ja: "東京駅", en: "Tokyo Station", lat: 35.6812, lng: 139.7671, wikiJa: "東京駅", commonsQuery: "Tokyo Station Marunouchi building", note: "红砖车站夜景、地下一番街吃拉面与买齐伴手礼，可坐京滨东北线直达关内站回酒店。", tags: ["must"] },
+      { id: "E4", day: 5, backup: true, zh: "银座中央通（备选晚间 Citywalk）", ja: "銀座中央通り", en: "Ginza Chuo-dori", lat: 35.6717, lng: 139.7650, wikiJa: "銀座", commonsQuery: "Ginza Wako Tokyo", note: "从东京站/丸之内往南步行 15 分钟即达！逛伊东屋文具、Loft 与圣诞橱窗，逛完从【JR 有乐町站】坐京滨东北线直达横滨关内站。", tags: ["walk", "must"] },
+      { id: "T3", day: 5, backup: true, zh: "东京塔 & 芝公园（备选晚间地标）", ja: "東京タワー・芝公園", en: "Tokyo Tower & Shiba Park", lat: 35.6586, lng: 139.7454, wikiJa: "東京タワー", commonsQuery: "Tokyo Tower night Shiba Park", note: "【新增东京必玩 · 晚间备选】从银座/有乐町乘地铁或打车 10 分钟可达，近距离仰拍暖红东京塔夜景，结束后从新桥/浜松町坐 JR 京滨东北线直达横滨关内站。", tags: ["must", "walk"] },
 
       // Day 6
-      { id: "25", day: 6, zh: "港见丘公园", ja: "港の見える丘公園", en: "Harbor View Park", lat: 35.4375, lng: 139.6540, note: "楼下坐 1 站到元町・中华街站乘直梯上山，俯瞰横滨港与海湾大桥。", tags: ["must"] },
-      { id: "Y4", day: 6, zh: "山手西洋馆群（圣诞特展）", ja: "横浜山手西洋館（ベーリック・ホール等）", en: "Yamate Bluff Western-style Houses", lat: 35.4368, lng: 139.6518, note: "【新增横滨必玩】就在港见丘公园往元町下坡的必经山路上！免费入内参观百年欧式洋房，12 月初正值横滨著名的“世界圣诞节”布景特展。", tags: ["must"] },
-      { id: "26", day: 6, zh: "横滨元町商店街", ja: "横浜元町ショッピングストリート", en: "Yokohama Motomachi Shopping Street", lat: 35.4402, lng: 139.6476, note: "从山坡顺路往下走，欧式面包房、咖啡馆与精品小店云集，适合早午餐。", tags: [] },
-      { id: "27", day: 6, zh: "合味道纪念馆", ja: "カップヌードルミュージアム 横浜", en: "Cup Noodles Museum Yokohama", lat: 35.4555, lng: 139.6388, note: "周五正常开放（周二闭馆），可亲手彩绘并定制专属口味杯面（建议提前官网预约DIY时段）。", tags: ["must"] },
-      { id: "28", day: 6, zh: "横滨港未来21", ja: "横浜みなとみらい21", en: "Yokohama Minato Mirai 21", lat: 35.4577, lng: 139.6325, note: "海滨公园晒太阳吹海风，晚上吃顿大餐并打包大部分行李。", tags: ["must"] },
+      { id: "25", day: 6, zh: "港见丘公园", ja: "港の見える丘公園", en: "Harbor View Park", lat: 35.4375, lng: 139.6540, wikiJa: "港の見える丘公園", commonsQuery: "Harbor View Park Yokohama", note: "楼下坐 1 站到元町・中华街站乘直梯上山，俯瞰横滨港与海湾大桥。", tags: ["must"] },
+      { id: "Y4", day: 6, zh: "山手西洋馆群（圣诞特展）", ja: "横浜山手西洋館（ベーリック・ホール等）", en: "Yamate Bluff Western-style Houses", lat: 35.4368, lng: 139.6518, wikiJa: "ベーリック・ホール", commonsQuery: "Berrick Hall Yamate Yokohama", note: "【新增横滨必玩】就在港见丘公园往元町下坡的必经山路上！免费入内参观百年欧式洋房，12 月初正值横滨著名的“世界圣诞节”布景特展。", tags: ["must"] },
+      { id: "26", day: 6, zh: "横滨元町商店街", ja: "横浜元町ショッピングストリート", en: "Yokohama Motomachi Shopping Street", lat: 35.4402, lng: 139.6476, wikiJa: "元町 (横浜市)", commonsQuery: "Yokohama Motomachi Shopping Street", note: "从山坡顺路往下走，欧式面包房、咖啡馆与精品小店云集，适合早午餐。", tags: [] },
+      { id: "27", day: 6, zh: "合味道纪念馆", ja: "カップヌードルミュージアム 横浜", en: "Cup Noodles Museum Yokohama", lat: 35.4555, lng: 139.6388, wikiJa: "安藤百福発明記念館 横浜", commonsQuery: "Cup Noodles Museum Yokohama", note: "周五正常开放（周二闭馆），可亲手彩绘并定制专属口味杯面（建议提前官网预约DIY时段）。", tags: ["must"] },
+      { id: "28", day: 6, zh: "横滨港未来21", ja: "横浜みなとみらい21", en: "Yokohama Minato Mirai 21", lat: 35.4577, lng: 139.6325, wikiJa: "横浜みなとみらい21", commonsQuery: "Yokohama Minato Mirai 21 skyline", note: "海滨公园晒太阳吹海风，晚上吃顿大餐并打包大部分行李。", tags: ["must"] },
 
       // Day 7
-      { id: "29", day: 7, zh: "三井奥特莱斯 横滨港湾（方案 A）", ja: "三井アウトレットパーク 横浜ベイサイド", en: "Mitsui Outlet Park Yokohama Bayside", lat: 35.3775, lng: 139.6461, note: "方案 A（轻松扫货版）：不想进东京的话，在横滨海滨奥莱或横滨站商场轻松扫货补齐药妆。", tags: ["opt"] },
-      { id: "30", day: 7, zh: "吉祥寺（方案 B）", ja: "吉祥寺", en: "Kichijoji", lat: 35.7031, lng: 139.5798, note: "方案 B（P5 巡礼版）：P5R 经典新增街区，文艺商店街、古着店与爵士酒吧氛围极佳。", tags: ["p5", "opt"] },
-      { id: "31", day: 7, zh: "井之头恩赐公园（方案 B）", ja: "井の頭恩賜公園", en: "Inokashira Park", lat: 35.6997, lng: 139.5740, note: "方案 B（P5 巡礼版）：紧邻吉祥寺，12 月初湖景与残秋树影非常舒服。", tags: ["p5", "opt"] },
-      { id: "T4", day: 7, backup: true, zh: "麻布台之丘 & 东京塔（方案 C）", ja: "麻布台ヒルズ・東京タワー", en: "Azabudai Hills & Tokyo Tower", lat: 35.6606, lng: 139.7408, note: "【新增方案 C（东京地标补完）】如果 Day 5 没去东京塔，Day 7 白天可把行李寄存在品川站，来麻布台之丘近距离拍东京塔、逛 teamLab Borderless，逛完回品川坐京急线 15 分钟直达羽田 T3！", tags: ["must", "opt"] },
-      { id: "32", day: 7, zh: "羽田机场 T3（晚班机返沪）", ja: "羽田空港 第3ターミナル", en: "Haneda Airport Terminal 3", lat: 35.5446, lng: 139.7681, note: "起飞前 3.5 小时出发（从横滨酒店出发约 45–50 分钟；若从品川站出发仅需 15 分钟）。", tags: [] }
+      { id: "29", day: 7, zh: "三井奥特莱斯 横滨港湾（方案 A）", ja: "三井アウトレットパーク 横浜ベイサイド", en: "Mitsui Outlet Park Yokohama Bayside", lat: 35.3775, lng: 139.6461, wikiJa: "三井アウトレットパーク 横浜ベイサイド", commonsQuery: "Mitsui Outlet Park Yokohama Bayside", note: "方案 A（轻松扫货版）：不想进东京的话，在横滨海滨奥莱或横滨站商场轻松扫货补齐药妆。", tags: ["opt"] },
+      { id: "30", day: 7, zh: "吉祥寺（方案 B）", ja: "吉祥寺", en: "Kichijoji", lat: 35.7031, lng: 139.5798, wikiJa: "吉祥寺", commonsQuery: "Kichijoji Sunroad Harmonica Yokocho", note: "方案 B（P5 巡礼版）：P5R 经典新增街区，文艺商店街、古着店与爵士酒吧氛围极佳。", tags: ["p5", "opt"] },
+      { id: "31", day: 7, zh: "井之头恩赐公园（方案 B）", ja: "井の頭恩賜公園", en: "Inokashira Park", lat: 35.6997, lng: 139.5740, wikiJa: "井の頭恩賜公園", commonsQuery: "Inokashira Park Tokyo", note: "方案 B（P5 巡礼版）：紧邻吉祥寺，12 月初湖景与残秋树影非常舒服。", tags: ["p5", "opt"] },
+      { id: "T4", day: 7, backup: true, zh: "麻布台之丘 & 东京塔（方案 C）", ja: "麻布台ヒルズ・東京タワー", en: "Azabudai Hills & Tokyo Tower", lat: 35.6606, lng: 139.7408, wikiJa: "麻布台ヒルズ", commonsQuery: "Azabudai Hills Tokyo", note: "【新增方案 C（东京地标补完）】如果 Day 5 没去东京塔，Day 7 白天可把行李寄存在品川站，来麻布台之丘近距离拍东京塔、逛 teamLab Borderless，逛完回品川坐京急线 15 分钟直达羽田 T3！", tags: ["must", "opt"] },
+      { id: "32", day: 7, zh: "羽田机场 T3（晚班机返沪）", ja: "羽田空港 第3ターミナル", en: "Haneda Airport Terminal 3", lat: 35.5446, lng: 139.7681, wikiJa: "東京国際空港", commonsQuery: "Haneda Airport International Terminal", note: "起飞前 3.5 小时出发（从横滨酒店出发约 45–50 分钟；若从品川站出发仅需 15 分钟）。", tags: [] }
     ];
 
-    // Init Leaflet Map
+    // ================= PHOTO LOADER (Wikipedia + Wikimedia Commons, 1-3 photos/spot, localStorage cached) =================
+    const PHOTO_CACHE_KEY = "jp_trip_photos_v6";
+    let photoCache = {};
+    try {
+      photoCache = JSON.parse(localStorage.getItem(PHOTO_CACHE_KEY) || "{}");
+    } catch (e) { photoCache = {}; }
+
+    function savePhotoCache() {
+      try { localStorage.setItem(PHOTO_CACHE_KEY, JSON.stringify(photoCache)); } catch (e) {}
+    }
+
+    const inflightPromises = {};
+    const fetchQueue = [];
+    let activeFetches = 0;
+    const MAX_CONCURRENT = 3;
+
+    function enqueueTask(fn) {
+      return new Promise((resolve, reject) => {
+        fetchQueue.push({ fn, resolve, reject });
+        drainQueue();
+      });
+    }
+
+    function drainQueue() {
+      while (activeFetches < MAX_CONCURRENT && fetchQueue.length > 0) {
+        const { fn, resolve, reject } = fetchQueue.shift();
+        activeFetches++;
+        fn().then(resolve, reject).finally(() => {
+          activeFetches--;
+          drainQueue();
+        });
+      }
+    }
+
+    const BAD_NAME_RE = /(logo|icon|map|locator|flag|sign|diagram|chart|symbol|route|blank|plan|emblem|crest|seal|coat_of_arms|station_number|arrow|pictogram)/i;
+
+    async function fetchWikiLeadImage(wikiJa) {
+      if (!wikiJa) return null;
+      const url = `https://ja.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(wikiJa)}&prop=pageimages&pithumbsize=640&format=json&origin=*`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const pages = data?.query?.pages || {};
+        for (const p of Object.values(pages)) {
+          if (p.thumbnail && p.thumbnail.source && !BAD_NAME_RE.test(p.thumbnail.source)) {
+            return {
+              thumb: p.thumbnail.source,
+              full: p.thumbnail.source.replace(/\/\d+px-/, "/1280px-"),
+              title: p.title || wikiJa
+            };
+          }
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    async function fetchCommonsImages(query, limit = 8) {
+      if (!query) return [];
+      const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(query + " filetype:bitmap")}&gsrlimit=${limit}&prop=imageinfo&iiprop=url|mime|size&iiurlwidth=640&format=json&origin=*`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const pages = Object.values(data?.query?.pages || {});
+        const results = [];
+        for (const p of pages) {
+          const title = p.title || "";
+          if (BAD_NAME_RE.test(title)) continue;
+          const info = p.imageinfo?.[0];
+          if (!info) continue;
+          if (!/^image\/(jpeg|png|webp)$/i.test(info.mime || "")) continue;
+          if ((info.width || 0) < 300 || (info.height || 0) < 200) continue;
+          const thumb = info.thumburl || info.url;
+          const full = info.url || thumb;
+          results.push({ thumb, full, title: title.replace(/^File:/i, "").replace(/\.[^.]+$/, "") });
+        }
+        return results;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function getSpotPhotos(spot, forceRefresh = false) {
+      const key = spot.id;
+      if (!forceRefresh && Array.isArray(photoCache[key]) && photoCache[key].length > 0) {
+        return Promise.resolve(photoCache[key]);
+      }
+      if (!forceRefresh && inflightPromises[key]) return inflightPromises[key];
+
+      const p = enqueueTask(async () => {
+        const photos = [];
+        const seen = new Set();
+        const addUnique = (item) => {
+          if (!item || !item.thumb) return;
+          const norm = item.thumb.split("/").pop().replace(/^\d+px-/, "");
+          if (seen.has(norm)) return;
+          seen.add(norm);
+          photos.push(item);
+        };
+
+        const [lead, commons] = await Promise.all([
+          fetchWikiLeadImage(spot.wikiJa),
+          fetchCommonsImages(spot.commonsQuery || spot.en, 8)
+        ]);
+        addUnique(lead);
+        for (const c of commons) {
+          if (photos.length >= 3) break;
+          addUnique(c);
+        }
+
+        // Fallback search with Japanese name if still empty
+        if (photos.length === 0 && spot.ja) {
+          const fallback = await fetchCommonsImages(spot.ja, 5);
+          for (const c of fallback) {
+            if (photos.length >= 3) break;
+            addUnique(c);
+          }
+        }
+
+        if (photos.length > 0) {
+          photoCache[key] = photos;
+          savePhotoCache();
+        }
+        delete inflightPromises[key];
+        return photos;
+      });
+
+      inflightPromises[key] = p;
+      return p;
+    }
+
+    // ================= LIGHTBOX =================
+    let lbPhotos = [];
+    let lbIndex = 0;
+    let lbSpotName = "";
+
+    function openLightbox(photos, idx, spotName) {
+      if (!photos || photos.length === 0) return;
+      lbPhotos = photos;
+      lbIndex = idx;
+      lbSpotName = spotName;
+      updateLightbox();
+      document.getElementById("lightbox").classList.add("open");
+    }
+
+    function updateLightbox() {
+      const item = lbPhotos[lbIndex];
+      document.getElementById("lbImg").src = item.full || item.thumb;
+      document.getElementById("lbCaption").textContent = `${lbSpotName}（${lbIndex + 1} / ${lbPhotos.length}）· ${item.title || ""}`;
+      document.getElementById("lbPrev").style.display = lbPhotos.length > 1 ? "flex" : "none";
+      document.getElementById("lbNext").style.display = lbPhotos.length > 1 ? "flex" : "none";
+    }
+
+    function closeLightbox() {
+      document.getElementById("lightbox").classList.remove("open");
+      document.getElementById("lbImg").src = "";
+    }
+
+    document.getElementById("lbClose").onclick = closeLightbox;
+    document.getElementById("lbPrev").onclick = (e) => {
+      e.stopPropagation();
+      lbIndex = (lbIndex - 1 + lbPhotos.length) % lbPhotos.length;
+      updateLightbox();
+    };
+    document.getElementById("lbNext").onclick = (e) => {
+      e.stopPropagation();
+      lbIndex = (lbIndex + 1) % lbPhotos.length;
+      updateLightbox();
+    };
+    document.getElementById("lightbox").onclick = (e) => {
+      if (e.target.id === "lightbox") closeLightbox();
+    };
+    document.addEventListener("keydown", (e) => {
+      if (!document.getElementById("lightbox").classList.contains("open")) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft" && lbPhotos.length > 1) {
+        lbIndex = (lbIndex - 1 + lbPhotos.length) % lbPhotos.length;
+        updateLightbox();
+      }
+      if (e.key === "ArrowRight" && lbPhotos.length > 1) {
+        lbIndex = (lbIndex + 1) % lbPhotos.length;
+        updateLightbox();
+      }
+    });
+
+    // ================= LEAFLET MAP =================
     const map = L.map("map", { zoomControl: true }).setView([35.50, 139.64], 11);
 
-    // GSI Standard Tile Layer (Default as requested)
     const gsiStdLayer = L.tileLayer(
       "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
       {
@@ -481,7 +844,6 @@
       }
     ).addTo(map);
 
-    // GSI Pale Tile Layer
     const gsiPaleLayer = L.tileLayer(
       "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png",
       {
@@ -494,11 +856,97 @@
     let selectedSpotId = null;
     let showLines = true;
     let showBackups = true;
+    let showPhotos = true;
     let isPaleTile = false;
 
     const markersLayer = L.layerGroup().addTo(map);
     const linesLayer = L.layerGroup().addTo(map);
     const markerById = {};
+
+    function populateGalleryEl(container, photos, spot, isPopup = false) {
+      container.innerHTML = "";
+      if (!photos || photos.length === 0) {
+        if (!isPopup) {
+          container.className = "spot-gallery count-1" + (showPhotos ? "" : " hidden");
+          const empty = document.createElement("div");
+          empty.className = "photo-empty";
+          empty.innerHTML = `<span>实景图暂未加载（需能访问 Wikimedia）</span>`;
+          const btn = document.createElement("button");
+          btn.className = "photo-retry-btn";
+          btn.textContent = "重试";
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            renderGallerySkeleton(container, false);
+            getSpotPhotos(spot, true).then(p => populateGalleryEl(container, p, spot, false));
+          };
+          empty.appendChild(btn);
+          container.appendChild(empty);
+        }
+        return;
+      }
+
+      container.className = (isPopup ? "popup-gallery" : "spot-gallery") + ` count-${photos.length}` + (!isPopup && !showPhotos ? " hidden" : "");
+      photos.forEach((item, idx) => {
+        if (isPopup) {
+          const img = document.createElement("img");
+          img.src = item.thumb;
+          img.alt = spot.zh;
+          img.loading = "lazy";
+          img.onclick = (e) => {
+            e.stopPropagation();
+            openLightbox(photos, idx, spot.zh);
+          };
+          container.appendChild(img);
+        } else {
+          const wrap = document.createElement("div");
+          wrap.className = "photo-thumb-wrap";
+          const img = document.createElement("img");
+          img.className = "photo-thumb";
+          img.src = item.thumb;
+          img.alt = spot.zh;
+          img.loading = "lazy";
+          img.onclick = (e) => {
+            e.stopPropagation();
+            openLightbox(photos, idx, spot.zh);
+          };
+          wrap.appendChild(img);
+          container.appendChild(wrap);
+        }
+      });
+    }
+
+    function renderGallerySkeleton(container, isPopup = false) {
+      container.innerHTML = "";
+      container.className = (isPopup ? "popup-gallery" : "spot-gallery") + (!isPopup && !showPhotos ? " hidden" : "");
+      for (let i = 0; i < 3; i++) {
+        const wrap = document.createElement("div");
+        wrap.className = "photo-thumb-wrap";
+        wrap.innerHTML = `<div class="photo-skeleton"></div>`;
+        container.appendChild(wrap);
+      }
+    }
+
+    // IntersectionObserver for lazy loading sidebar photos
+    let photoObserver = null;
+    function resetPhotoObserver() {
+      if (photoObserver) photoObserver.disconnect();
+      photoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const el = entry.target;
+          photoObserver.unobserve(el);
+          const spotId = el.dataset.spotId;
+          const spot = SPOTS.find(s => s.id === spotId);
+          if (spot) {
+            getSpotPhotos(spot).then(photos => {
+              if (document.body.contains(el)) {
+                populateGalleryEl(el, photos, spot, false);
+              }
+            });
+          }
+        });
+      }, { rootMargin: "160px 0px" });
+    }
 
     // Always-visible Hotel Marker
     const hotelIcon = L.divIcon({
@@ -508,16 +956,46 @@
       iconAnchor: [17, 17],
       popupAnchor: [0, -18]
     });
+
+    function buildPopupNode(spot, isHotel = false) {
+      const box = document.createElement("div");
+      box.className = "popup-box";
+      const badgeText = spot.backup ? " · 备选点" : "";
+      const titleText = isHotel ? `🏨 ${spot.zh}` : `#${spot.id} ${spot.zh}`;
+      const subText = isHotel ? `${spot.ja}<br>${spot.en}` : `${spot.ja}<br>${spot.en} · Day ${spot.day}${badgeText}`;
+      const gUrl = isHotel
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.en + ' ' + spot.address)}`
+        : gmapsUrl(spot);
+
+      box.innerHTML = `
+        <h3>${titleText}</h3>
+        <div class="popup-sub">${subText}</div>
+        <div class="popup-gallery" data-popup-gallery="1"></div>
+        <div class="popup-note">${spot.note}</div>
+        <a class="popup-btn" target="_blank" href="${gUrl}">${isHotel ? '在 Google Maps 中打开 ↗' : '在 Google Maps 中导航 ↗'}</a>
+      `;
+
+      const gal = box.querySelector("[data-popup-gallery]");
+      if (showPhotos) {
+        if (photoCache[spot.id]?.length) {
+          populateGalleryEl(gal, photoCache[spot.id], spot, true);
+        } else {
+          renderGallerySkeleton(gal, true);
+          getSpotPhotos(spot).then(photos => {
+            if (document.body.contains(gal)) {
+              populateGalleryEl(gal, photos, spot, true);
+            }
+          });
+        }
+      } else {
+        gal.style.display = "none";
+      }
+      return box;
+    }
+
     const hotelMarker = L.marker([HOTEL.lat, HOTEL.lng], { icon: hotelIcon, zIndexOffset: 1000 })
       .addTo(map)
-      .bindPopup(`
-        <div class="popup-box">
-          <h3>🏨 ${HOTEL.zh}</h3>
-          <div class="popup-sub">${HOTEL.ja}<br>${HOTEL.en}</div>
-          <div class="popup-note">${HOTEL.note}</div>
-          <a class="popup-btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(HOTEL.en + ' ' + HOTEL.address)}">在 Google Maps 中打开 ↗</a>
-        </div>
-      `);
+      .bindPopup(() => buildPopupNode(HOTEL, true));
 
     function gmapsUrl(spot) {
       return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.ja + ' ' + spot.en)}`;
@@ -551,6 +1029,7 @@
     }
 
     function renderSidebar() {
+      resetPhotoObserver();
       const info = DAYS[activeDay];
       const summary = document.getElementById("daySummary");
       summary.innerHTML = `
@@ -585,12 +1064,22 @@
             <div class="spot-zh">${spot.zh}</div>
             <div class="spot-names">${spot.ja} · ${spot.en}</div>
             <div class="spot-note">${spot.note}</div>
+            <div class="spot-gallery ${showPhotos ? '' : 'hidden'}" data-spot-id="${spot.id}"></div>
             <div class="spot-footer">
               <div class="tags">${tagsHtml}</div>
               <a class="gmaps-link" target="_blank" href="${gmapsUrl(spot)}" onclick="event.stopPropagation()">导航 ↗</a>
             </div>
           </div>
         `;
+
+        const gal = card.querySelector(".spot-gallery");
+        if (photoCache[spot.id]?.length) {
+          populateGalleryEl(gal, photoCache[spot.id], spot, false);
+        } else if (showPhotos) {
+          renderGallerySkeleton(gal, false);
+          photoObserver.observe(gal);
+        }
+
         card.onclick = () => selectSpot(spot.id, true);
         list.appendChild(card);
       });
@@ -607,7 +1096,6 @@
         boundsPts.push([HOTEL.lat, HOTEL.lng]);
       }
 
-      // Draw route polylines per day
       const daysToDraw = activeDay === 0 ? [1,2,3,4,5,6,7] : [activeDay];
       if (showLines) {
         daysToDraw.forEach(d => {
@@ -627,7 +1115,6 @@
         });
       }
 
-      // Add spot markers
       filtered.forEach(spot => {
         const color = DAYS[spot.day].color;
         const isSel = selectedSpotId === spot.id;
@@ -643,17 +1130,9 @@
           popupAnchor: [0, -16]
         });
 
-        const badgeText = spot.backup ? " · 备选点" : "";
         const marker = L.marker([spot.lat, spot.lng], { icon, zIndexOffset: isSel ? 900 : (spot.backup ? 80 : 120) })
           .addTo(markersLayer)
-          .bindPopup(`
-            <div class="popup-box">
-              <h3>#${spot.id} ${spot.zh}</h3>
-              <div class="popup-sub">${spot.ja}<br>${spot.en} · Day ${spot.day}${badgeText}</div>
-              <div class="popup-note">${spot.note}</div>
-              <a class="popup-btn" target="_blank" href="${gmapsUrl(spot)}">在 Google Maps 中导航 ↗</a>
-            </div>
-          `);
+          .bindPopup(() => buildPopupNode(spot, false), { maxWidth: 310 });
 
         marker.on("click", () => selectSpot(spot.id, false));
         markerById[spot.id] = marker;
@@ -668,7 +1147,13 @@
 
     function selectSpot(id, panToMap) {
       selectedSpotId = id;
-      renderSidebar();
+      // Highlight card without tearing down already-loaded galleries
+      document.querySelectorAll(".spot-card.active").forEach(el => el.classList.remove("active"));
+      const cardEl = document.getElementById(`spot-card-${id}`);
+      if (cardEl) {
+        cardEl.classList.add("active");
+        cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
       renderMap(false);
 
       const spot = SPOTS.find(s => s.id === id);
@@ -679,9 +1164,6 @@
         }
         marker.openPopup();
       }
-
-      const cardEl = document.getElementById(`spot-card-${id}`);
-      if (cardEl) cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
     function renderAll(shouldFit) {
@@ -696,6 +1178,12 @@
     };
 
     document.getElementById("fitBoundsBtn").onclick = () => renderMap(true);
+
+    document.getElementById("togglePhotosBtn").onclick = (e) => {
+      showPhotos = !showPhotos;
+      e.target.classList.toggle("active", showPhotos);
+      renderSidebar();
+    };
 
     document.getElementById("toggleLinesBtn").onclick = () => {
       showLines = !showLines;

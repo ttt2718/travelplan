@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>横滨 + 东京 + 镰仓 7天行程交互地图 v6（含每个景点实景图 + 必玩地标 + P5 + 如龙 + 命运石之门）</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -455,11 +455,386 @@
     .lightbox-next { right: 16px; }
     .lightbox-close:hover, .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
 
+    .mobile-topbar,
+    .mobile-dock,
+    .mobile-sheet-header,
+    .sheet-scrim { display: none; }
+    .day-filter-list { display: contents; }
+
+    button:focus-visible,
+    .hotel-badge:focus-visible,
+    .spot-card:focus-visible {
+      outline: 3px solid #ff5f1f;
+      outline-offset: 3px;
+    }
+
     @media (max-width: 820px) {
-      body { height: auto; overflow: auto; }
-      .main { flex-direction: column-reverse; }
-      .map-wrap { height: 55vh; min-height: 380px; }
-      .sidebar { width: 100%; overflow: visible; border-right: none; border-top: 1px solid var(--border); }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+      body { background: #f5f6f2; }
+      header { display: none; }
+
+      .main {
+        position: relative;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+      }
+      .map-wrap {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        min-height: 0;
+      }
+      #map { position: absolute; inset: 0; }
+
+      .mobile-topbar {
+        position: absolute;
+        top: calc(env(safe-area-inset-top, 0px) + 12px);
+        left: 12px;
+        right: 12px;
+        z-index: 1100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        pointer-events: none;
+      }
+      .mobile-topbar button { pointer-events: auto; }
+      .mobile-day-quick {
+        min-width: 0;
+        max-width: calc(100% - 60px);
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 0 14px;
+        border: 1px solid rgba(17, 17, 17, 0.12);
+        border-radius: 9px;
+        background: rgba(245, 246, 242, 0.96);
+        color: #111111;
+        box-shadow: 0 3px 14px rgba(17, 17, 17, 0.14);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .mobile-day-quick .day-dot { flex: 0 0 auto; }
+      .mobile-day-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .mobile-day-quick svg { flex: 0 0 auto; }
+      .mobile-icon-btn {
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(17, 17, 17, 0.12);
+        border-radius: 9px;
+        background: rgba(245, 246, 242, 0.96);
+        color: #111111;
+        box-shadow: 0 3px 14px rgba(17, 17, 17, 0.14);
+        cursor: pointer;
+      }
+      .mobile-topbar button:active,
+      .mobile-dock button:active { transform: scale(0.96); }
+
+      .mobile-dock {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1100;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 7px 12px calc(7px + env(safe-area-inset-bottom, 0px));
+        border-top: 1px solid rgba(17, 17, 17, 0.12);
+        background: rgba(245, 246, 242, 0.97);
+      }
+      .mobile-dock button {
+        min-width: 0;
+        min-height: 54px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: #111111;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 650;
+        cursor: pointer;
+        transition: color 160ms ease, background-color 160ms ease, transform 120ms ease;
+      }
+      .mobile-dock button[aria-expanded="true"] {
+        color: #9a3412;
+        background: rgba(255, 95, 31, 0.12);
+      }
+      .mobile-dock svg { width: 22px; height: 22px; }
+
+      .sheet-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1400;
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: rgba(17, 17, 17, 0.42);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        cursor: pointer;
+        transition: opacity 200ms ease, visibility 200ms;
+      }
+      .sheet-scrim.open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .mobile-sheet-header {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        min-height: 68px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 17px 0 10px;
+        background: #f5f6f2;
+        touch-action: none;
+        cursor: grab;
+      }
+      .mobile-sheet-header:active { cursor: grabbing; }
+      .mobile-sheet-header::before {
+        content: "";
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        width: 38px;
+        height: 4px;
+        border-radius: 4px;
+        background: #c8cbc4;
+        transform: translateX(-50%);
+      }
+      .mobile-sheet-title {
+        color: #111111;
+        font-size: 17px;
+        font-weight: 750;
+      }
+      .mobile-sheet-subtitle {
+        margin-top: 2px;
+        color: #60645e;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .sheet-close {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        background: #e7e9e3;
+        color: #111111;
+        cursor: pointer;
+      }
+
+      .sidebar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1500;
+        width: 100%;
+        max-width: none;
+        height: 78dvh;
+        max-height: calc(100dvh - 48px);
+        padding: 0 16px calc(18px + env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border: 0;
+        border-radius: 18px 18px 0 0;
+        background: #f5f6f2;
+        box-shadow: 0 -12px 40px rgba(17, 17, 17, 0.18);
+        visibility: hidden;
+        transform: translateY(102%);
+        transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), visibility 240ms;
+      }
+      .sidebar.open { visibility: visible; transform: translateY(0); }
+      .day-summary {
+        padding: 14px 0;
+        border: 0;
+        border-bottom: 1px solid #d9dcd4;
+        border-radius: 0;
+        background: transparent;
+      }
+      .day-summary h2 { font-size: 16px; line-height: 1.5; }
+      .transit-box,
+      .citywalk-tip { font-size: 14px; line-height: 1.65; }
+      .spot-list { gap: 0; }
+      .spot-card {
+        min-height: 72px;
+        padding: 16px 0;
+        gap: 12px;
+        border: 0;
+        border-bottom: 1px solid #d9dcd4;
+        border-radius: 0;
+        background: transparent;
+      }
+      .spot-card.backup { background: transparent; }
+      .spot-card.active {
+        border-color: #d9dcd4;
+        background: rgba(255, 95, 31, 0.08);
+        box-shadow: none;
+      }
+      .spot-card:hover { transform: none; box-shadow: none; }
+      .spot-num { width: 32px; height: 32px; min-width: 32px; font-size: 12px; }
+      .spot-zh { font-size: 16px; line-height: 1.45; }
+      .spot-names { font-size: 12px; line-height: 1.55; }
+      .spot-note { font-size: 14px; line-height: 1.65; }
+      .tag { font-size: 12px; padding: 3px 8px; }
+      .gmaps-link {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+      .photo-empty,
+      .photo-retry-btn { font-size: 12px; }
+      .photo-retry-btn { min-width: 44px; min-height: 44px; }
+
+      .filter-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1500;
+        display: block;
+        width: 100%;
+        max-height: 82dvh;
+        padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        white-space: normal;
+        border: 0;
+        border-radius: 18px 18px 0 0;
+        background: #f5f6f2;
+        box-shadow: 0 -12px 40px rgba(17, 17, 17, 0.18);
+        visibility: hidden;
+        transform: translateY(102%);
+        transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), visibility 240ms;
+      }
+      .filter-bar.open { visibility: visible; transform: translateY(0); }
+      .day-filter-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+      .day-btn {
+        width: 100%;
+        min-height: 48px;
+        justify-content: flex-start;
+        padding: 11px 14px;
+        border-radius: 7px;
+        background: #ffffff;
+        font-size: 14px;
+        text-align: left;
+      }
+      .day-btn.active { box-shadow: none; }
+
+      .map-controls-overlay {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1500;
+        display: block;
+        width: 100%;
+        max-height: 82dvh;
+        padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border-radius: 18px 18px 0 0;
+        background: #f5f6f2;
+        box-shadow: 0 -12px 40px rgba(17, 17, 17, 0.18);
+        visibility: hidden;
+        transform: translateY(102%);
+        transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), visibility 240ms;
+      }
+      .map-controls-overlay.open { visibility: visible; transform: translateY(0); }
+      .map-ctrl-btn {
+        width: 100%;
+        min-height: 52px;
+        padding: 12px 4px;
+        border: 0;
+        border-bottom: 1px solid #d9dcd4;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        color: #111111;
+        font-size: 15px;
+        text-align: left;
+      }
+      .map-ctrl-btn.active {
+        border-color: #d9dcd4;
+        background: transparent;
+        color: #9a3412;
+      }
+      .map-ctrl-btn:hover { background: rgba(255, 255, 255, 0.55); }
+
+      .custom-pin { width: 36px; height: 36px; font-size: 12px; }
+      .hotel-pin { width: 44px; height: 44px; }
+      .leaflet-top.leaflet-left { top: 62px; }
+      .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; }
+      .leaflet-bottom.leaflet-right { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+      .leaflet-control-attribution { max-width: 76vw; font-size: 12px; line-height: 1.35; }
+      .leaflet-popup-content { max-height: 52dvh; overflow-y: auto; }
+      .popup-box { width: min(275px, 72vw); }
+      .popup-box h3 { font-size: 16px; line-height: 1.45; }
+      .popup-sub { font-size: 12px; line-height: 1.5; }
+      .popup-note { font-size: 14px; line-height: 1.6; }
+      .popup-btn {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+      }
+      .lightbox-close,
+      .lightbox-nav { width: 44px; height: 44px; }
+      .lightbox-caption { font-size: 14px; }
+    }
+
+    @media (min-width: 821px) {
+      .sidebar { width: 455px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sidebar,
+      .filter-bar,
+      .map-controls-overlay,
+      .sheet-scrim,
+      .mobile-dock button,
+      .photo-thumb { transition: none !important; }
+      .photo-skeleton { animation: none; }
     }
   </style>
 </head>
@@ -470,39 +845,93 @@
       <h1>横滨 + 东京 + 镰仓 7天行程交互地图 v6（含景点实景图）</h1>
       <p>11/29（周日）中午抵羽田 — 12/05（周六）晚返上海 · 国土地理院地图 + 每景点 1–3 张代表性实景图（点击可放大）</p>
     </div>
-    <div class="hotel-badge" id="focusHotelBtn" title="点击在地图上定位酒店">
+    <button type="button" class="hotel-badge" id="focusHotelBtn" title="点击在地图上定位酒店">
       <span>🏨</span>
       <span>Citadines Harbour Front Yokohama（日本大通站）</span>
-    </div>
+    </button>
   </header>
 
-  <nav class="filter-bar" id="filterBar"></nav>
+  <nav class="filter-bar" id="filterBar" aria-label="选择行程日期">
+    <div class="mobile-sheet-header">
+      <div>
+        <div class="mobile-sheet-title">选择日期</div>
+        <div class="mobile-sheet-subtitle">选择后返回地图，查看当天路线</div>
+      </div>
+      <button type="button" class="sheet-close" id="closeDaySheet" aria-label="关闭日期选择">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="day-filter-list" id="dayFilterList"></div>
+  </nav>
 
   <main class="main">
-    <aside class="sidebar">
+    <aside class="sidebar" id="itinerarySheet" aria-label="行程安排">
+      <div class="mobile-sheet-header">
+        <div>
+          <div class="mobile-sheet-title">行程安排</div>
+          <div class="mobile-sheet-subtitle" id="itinerarySubtitle">交通提示与地点列表</div>
+        </div>
+        <button type="button" class="sheet-close" id="closeItinerarySheet" aria-label="关闭行程抽屉">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
       <div class="day-summary" id="daySummary"></div>
       <div class="spot-list" id="spotList"></div>
     </aside>
-    <section class="map-wrap">
+    <section class="map-wrap" aria-label="旅行互动地图">
       <div id="map"></div>
-      <div class="map-controls-overlay">
-        <button class="map-ctrl-btn" id="fitBoundsBtn">🎯 适配当前视野</button>
-        <button class="map-ctrl-btn active" id="togglePhotosBtn">🖼️ 显示/隐藏实景图</button>
-        <button class="map-ctrl-btn active" id="toggleBackupBtn">🚶 显示/隐藏备选点</button>
-        <button class="map-ctrl-btn" id="toggleLinesBtn">〰️ 隐藏/显示连线</button>
-        <button class="map-ctrl-btn" id="toggleTileStyleBtn">🗺️ 切换国土地理院淡色图</button>
+      <div class="mobile-topbar">
+        <button type="button" class="mobile-day-quick" id="mobileDayQuickBtn" aria-label="选择行程日期" aria-expanded="false">
+          <span class="day-dot" id="mobileDayDot"></span>
+          <span class="mobile-day-label" id="mobileDayLabel">全部总览</span>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button type="button" class="mobile-icon-btn" id="mobileHotelBtn" aria-label="在地图上定位酒店">
+          <svg aria-hidden="true" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14M2 21h20M8 9h2M14 9h2M8 13h2M14 13h2M10 21v-4h4v4"/></svg>
+        </button>
       </div>
+      <div class="map-controls-overlay" id="mapSettingsSheet" aria-label="地图设置">
+        <div class="mobile-sheet-header">
+          <div>
+            <div class="mobile-sheet-title">地图设置</div>
+            <div class="mobile-sheet-subtitle">调整标记、路线与地图底色</div>
+          </div>
+          <button type="button" class="sheet-close" id="closeMapSettings" aria-label="关闭地图设置">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <button type="button" class="map-ctrl-btn" id="fitBoundsBtn">适配当前行程视野</button>
+        <button type="button" class="map-ctrl-btn active" id="togglePhotosBtn">实景图：显示</button>
+        <button type="button" class="map-ctrl-btn active" id="toggleBackupBtn">备选点：显示</button>
+        <button type="button" class="map-ctrl-btn active" id="toggleLinesBtn">行程连线：显示</button>
+        <button type="button" class="map-ctrl-btn" id="toggleTileStyleBtn">地图底色：标准</button>
+      </div>
+      <nav class="mobile-dock" aria-label="地图菜单">
+        <button type="button" id="openItinerarySheet" aria-expanded="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
+          <span>行程</span>
+        </button>
+        <button type="button" id="openDaySheet" aria-expanded="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+          <span>日期</span>
+        </button>
+        <button type="button" id="openMapSettings" aria-expanded="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+          <span>设置</span>
+        </button>
+      </nav>
     </section>
   </main>
+  <button type="button" class="sheet-scrim" id="sheetScrim" aria-label="关闭当前抽屉" tabindex="-1"></button>
 
   <!-- Fullscreen Photo Lightbox -->
-  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
-    <button class="lightbox-close" id="lbClose" title="关闭 (ESC)">✕</button>
-    <button class="lightbox-nav lightbox-prev" id="lbPrev" title="上一张">‹</button>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="景点实景图">
+    <button type="button" class="lightbox-close" id="lbClose" title="关闭 (ESC)" aria-label="关闭图片">✕</button>
+    <button type="button" class="lightbox-nav lightbox-prev" id="lbPrev" title="上一张" aria-label="上一张图片">‹</button>
     <div class="lightbox-inner">
       <img class="lightbox-img" id="lbImg" src="" alt="" />
     </div>
-    <button class="lightbox-nav lightbox-next" id="lbNext" title="下一张">›</button>
+    <button type="button" class="lightbox-nav lightbox-next" id="lbNext" title="下一张" aria-label="下一张图片">›</button>
     <div class="lightbox-caption" id="lbCaption"></div>
   </div>
 
@@ -783,14 +1212,17 @@
     let lbPhotos = [];
     let lbIndex = 0;
     let lbSpotName = "";
+    let lightboxReturnFocus = null;
 
     function openLightbox(photos, idx, spotName) {
       if (!photos || photos.length === 0) return;
+      lightboxReturnFocus = document.activeElement;
       lbPhotos = photos;
       lbIndex = idx;
       lbSpotName = spotName;
       updateLightbox();
       document.getElementById("lightbox").classList.add("open");
+      document.getElementById("lbClose").focus({ preventScroll: true });
     }
 
     function updateLightbox() {
@@ -804,6 +1236,10 @@
     function closeLightbox() {
       document.getElementById("lightbox").classList.remove("open");
       document.getElementById("lbImg").src = "";
+      if (lightboxReturnFocus && lightboxReturnFocus.isConnected) {
+        lightboxReturnFocus.focus({ preventScroll: true });
+      }
+      lightboxReturnFocus = null;
     }
 
     document.getElementById("lbClose").onclick = closeLightbox;
@@ -862,6 +1298,163 @@
     const markersLayer = L.layerGroup().addTo(map);
     const linesLayer = L.layerGroup().addTo(map);
     const markerById = {};
+
+    // ================= MOBILE MAP-FIRST SHEETS =================
+    const mobileMedia = window.matchMedia("(max-width: 820px)");
+    const sheetElements = {
+      itinerary: document.getElementById("itinerarySheet"),
+      day: document.getElementById("filterBar"),
+      settings: document.getElementById("mapSettingsSheet")
+    };
+    const sheetTriggers = {
+      itinerary: [document.getElementById("openItinerarySheet")],
+      day: [document.getElementById("openDaySheet"), document.getElementById("mobileDayQuickBtn")],
+      settings: [document.getElementById("openMapSettings")]
+    };
+    const sheetScrim = document.getElementById("sheetScrim");
+    let activeSheet = null;
+    let sheetReturnFocus = null;
+
+    function syncSheetAccessibility() {
+      Object.values(sheetElements).forEach(el => {
+        if (mobileMedia.matches && !el.classList.contains("open")) {
+          el.setAttribute("aria-hidden", "true");
+        } else {
+          el.removeAttribute("aria-hidden");
+        }
+      });
+    }
+
+    function closeMobileSheet(restoreFocus = true) {
+      if (!activeSheet) return;
+      const currentName = activeSheet;
+      const currentSheet = sheetElements[currentName];
+      const returnTarget = sheetReturnFocus;
+      currentSheet.classList.remove("open");
+      currentSheet.style.transition = "";
+      currentSheet.style.transform = "";
+      currentSheet.removeAttribute("role");
+      currentSheet.removeAttribute("aria-modal");
+      sheetScrim.classList.remove("open");
+      Object.values(sheetTriggers).flat().forEach(btn => btn.setAttribute("aria-expanded", "false"));
+      activeSheet = null;
+      sheetReturnFocus = null;
+      syncSheetAccessibility();
+      if (restoreFocus && returnTarget && returnTarget.isConnected && mobileMedia.matches) {
+        returnTarget.focus({ preventScroll: true });
+      }
+    }
+
+    function openMobileSheet(name, trigger) {
+      if (!mobileMedia.matches) return;
+      if (activeSheet === name) {
+        closeMobileSheet();
+        return;
+      }
+      closeMobileSheet(false);
+      activeSheet = name;
+      sheetReturnFocus = trigger;
+      const sheet = sheetElements[name];
+      sheet.style.transition = "";
+      sheet.style.transform = "";
+      sheet.classList.add("open");
+      sheet.setAttribute("role", "dialog");
+      sheet.setAttribute("aria-modal", "true");
+      sheet.removeAttribute("aria-hidden");
+      sheetScrim.classList.add("open");
+      sheetTriggers[name].forEach(btn => btn.setAttribute("aria-expanded", "true"));
+      map.closePopup();
+      const closeButton = sheet.querySelector(".sheet-close");
+      requestAnimationFrame(() => closeButton && closeButton.focus({ preventScroll: true }));
+    }
+
+    document.getElementById("openItinerarySheet").onclick = e => openMobileSheet("itinerary", e.currentTarget);
+    document.getElementById("openDaySheet").onclick = e => openMobileSheet("day", e.currentTarget);
+    document.getElementById("mobileDayQuickBtn").onclick = e => openMobileSheet("day", e.currentTarget);
+    document.getElementById("openMapSettings").onclick = e => openMobileSheet("settings", e.currentTarget);
+    document.getElementById("closeItinerarySheet").onclick = () => closeMobileSheet();
+    document.getElementById("closeDaySheet").onclick = () => closeMobileSheet();
+    document.getElementById("closeMapSettings").onclick = () => closeMobileSheet();
+    sheetScrim.onclick = () => closeMobileSheet();
+
+    document.addEventListener("keydown", e => {
+      if (!activeSheet || document.getElementById("lightbox").classList.contains("open")) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMobileSheet();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const sheet = sheetElements[activeSheet];
+      const focusable = Array.from(sheet.querySelectorAll("button:not([disabled]), a[href], [tabindex='0']"))
+        .filter(el => el.getClientRects().length > 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    function handleMapViewportChange() {
+      closeMobileSheet(false);
+      syncSheetAccessibility();
+      renderMap(false);
+      requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+    }
+    if (mobileMedia.addEventListener) {
+      mobileMedia.addEventListener("change", handleMapViewportChange);
+    } else {
+      mobileMedia.addListener(handleMapViewportChange);
+    }
+
+    // Pull down from a sheet header to return to the full-screen map.
+    let draggedSheet = null;
+    Object.entries(sheetElements).forEach(([name, sheet]) => {
+      const header = sheet.querySelector(".mobile-sheet-header");
+      if (!header) return;
+      header.addEventListener("pointerdown", e => {
+        if (!mobileMedia.matches || activeSheet !== name || e.button !== 0 || e.target.closest("button, a")) return;
+        draggedSheet = {
+          name,
+          sheet,
+          header,
+          pointerId: e.pointerId,
+          startY: e.clientY,
+          startTime: performance.now(),
+          offset: 0
+        };
+        header.setPointerCapture(e.pointerId);
+        sheet.style.transition = "none";
+      });
+      header.addEventListener("pointermove", e => {
+        if (!draggedSheet || draggedSheet.pointerId !== e.pointerId || draggedSheet.name !== name) return;
+        const offset = Math.max(0, e.clientY - draggedSheet.startY);
+        draggedSheet.offset = offset;
+        if (offset > 0) {
+          e.preventDefault();
+          sheet.style.transform = `translateY(${offset}px)`;
+        }
+      });
+      const finishDrag = (e, cancelled = false) => {
+        if (!draggedSheet || draggedSheet.pointerId !== e.pointerId || draggedSheet.name !== name) return;
+        const elapsed = Math.max(1, performance.now() - draggedSheet.startTime);
+        const offset = draggedSheet.offset;
+        const velocity = offset / elapsed;
+        const shouldClose = !cancelled && (offset > 96 || (offset > 32 && velocity > 0.55));
+        draggedSheet = null;
+        sheet.style.transition = "";
+        sheet.style.transform = "";
+        if (shouldClose) closeMobileSheet(false);
+      };
+      header.addEventListener("pointerup", e => finishDrag(e));
+      header.addEventListener("pointercancel", e => finishDrag(e, true));
+    });
+    syncSheetAccessibility();
 
     function populateGalleryEl(container, photos, spot, isPopup = false) {
       container.innerHTML = "";
@@ -949,12 +1542,13 @@
     }
 
     // Always-visible Hotel Marker
+    const hotelPinSize = mobileMedia.matches ? 44 : 34;
     const hotelIcon = L.divIcon({
       className: "",
       html: `<div class="hotel-pin" title="${HOTEL.en}">🏨</div>`,
-      iconSize: [34, 34],
-      iconAnchor: [17, 17],
-      popupAnchor: [0, -18]
+      iconSize: [hotelPinSize, hotelPinSize],
+      iconAnchor: [hotelPinSize / 2, hotelPinSize / 2],
+      popupAnchor: [0, -(hotelPinSize / 2 + 1)]
     });
 
     function buildPopupNode(spot, isHotel = false) {
@@ -1010,19 +1604,26 @@
     }
 
     function renderFilterBar() {
-      const bar = document.getElementById("filterBar");
+      const bar = document.getElementById("dayFilterList");
       bar.innerHTML = "";
+      const activeInfo = DAYS[activeDay];
+      document.getElementById("mobileDayLabel").textContent = activeInfo.short;
+      document.getElementById("mobileDayDot").style.background = activeInfo.color;
+      document.getElementById("itinerarySubtitle").textContent = `${activeInfo.short} · ${getVisibleSpots().length} 个地点`;
       Object.keys(DAYS).forEach(k => {
         const d = Number(k);
         const info = DAYS[d];
         const btn = document.createElement("button");
+        btn.type = "button";
         btn.className = "day-btn" + (activeDay === d ? " active" : "");
+        btn.setAttribute("aria-pressed", activeDay === d ? "true" : "false");
         if (activeDay === d) btn.style.background = info.color;
         btn.innerHTML = `<span class="day-dot" style="background:${activeDay === d ? '#fff' : info.color}"></span>${info.short}`;
         btn.onclick = () => {
           activeDay = d;
           selectedSpotId = null;
           renderAll(true);
+          if (mobileMedia.matches) closeMobileSheet();
         };
         bar.appendChild(btn);
       });
@@ -1047,6 +1648,9 @@
         const card = document.createElement("div");
         card.className = "spot-card" + (spot.backup ? " backup" : "") + (selectedSpotId === spot.id ? " active" : "");
         card.id = `spot-card-${spot.id}`;
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `在地图上查看 ${spot.zh}`);
 
         let tagsHtml = `<span class="tag tag-day">Day ${spot.day}</span>`;
         if (spot.tags.includes("must")) tagsHtml += `<span class="tag tag-must">必玩地标</span>`;
@@ -1081,6 +1685,12 @@
         }
 
         card.onclick = () => selectSpot(spot.id, true);
+        card.onkeydown = e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectSpot(spot.id, true);
+          }
+        };
         list.appendChild(card);
       });
     }
@@ -1122,12 +1732,13 @@
           ? `color:${color};border-color:${color};`
           : `background:${color};`;
 
+        const pinSize = mobileMedia.matches ? 36 : 28;
         const icon = L.divIcon({
           className: "",
           html: `<div class="custom-pin ${spot.backup ? 'backup-pin' : ''} ${isSel ? 'selected' : ''}" style="${pinStyle}">${spot.id}</div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-          popupAnchor: [0, -16]
+          iconSize: [pinSize, pinSize],
+          iconAnchor: [pinSize / 2, pinSize / 2],
+          popupAnchor: [0, -(pinSize / 2 + 2)]
         });
 
         const marker = L.marker([spot.lat, spot.lng], { icon, zIndexOffset: isSel ? 900 : (spot.backup ? 80 : 120) })
@@ -1141,18 +1752,28 @@
 
       if (shouldFit && boundsPts.length > 0) {
         const bounds = L.latLngBounds(boundsPts);
-        map.fitBounds(bounds, { padding: [42, 42], maxZoom: 16 });
+        if (mobileMedia.matches) {
+          map.fitBounds(bounds, {
+            paddingTopLeft: [24, 82],
+            paddingBottomRight: [24, 104],
+            maxZoom: 16
+          });
+        } else {
+          map.fitBounds(bounds, { padding: [42, 42], maxZoom: 16 });
+        }
       }
     }
 
     function selectSpot(id, panToMap) {
       selectedSpotId = id;
+      const openedFromItinerary = panToMap && mobileMedia.matches;
+      if (openedFromItinerary) closeMobileSheet(false);
       // Highlight card without tearing down already-loaded galleries
       document.querySelectorAll(".spot-card.active").forEach(el => el.classList.remove("active"));
       const cardEl = document.getElementById(`spot-card-${id}`);
       if (cardEl) {
         cardEl.classList.add("active");
-        cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        if (!openedFromItinerary) cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
       renderMap(false);
 
@@ -1164,6 +1785,7 @@
         }
         marker.openPopup();
       }
+      if (mobileMedia.matches) requestAnimationFrame(() => map.invalidateSize({ pan: false }));
     }
 
     function renderAll(shouldFit) {
@@ -1172,47 +1794,74 @@
       renderMap(shouldFit);
     }
 
-    document.getElementById("focusHotelBtn").onclick = () => {
+    function focusHotel() {
+      if (mobileMedia.matches) closeMobileSheet(false);
       map.setView([HOTEL.lat, HOTEL.lng], 15, { animate: true });
       hotelMarker.openPopup();
+    }
+
+    document.getElementById("focusHotelBtn").onclick = focusHotel;
+    document.getElementById("mobileHotelBtn").onclick = focusHotel;
+
+    document.getElementById("fitBoundsBtn").onclick = () => {
+      renderMap(true);
+      if (mobileMedia.matches) closeMobileSheet();
     };
 
-    document.getElementById("fitBoundsBtn").onclick = () => renderMap(true);
+    function updateMapControlLabels() {
+      const photosBtn = document.getElementById("togglePhotosBtn");
+      const backupBtn = document.getElementById("toggleBackupBtn");
+      const linesBtn = document.getElementById("toggleLinesBtn");
+      const tileBtn = document.getElementById("toggleTileStyleBtn");
+      photosBtn.textContent = `实景图：${showPhotos ? "显示" : "隐藏"}`;
+      backupBtn.textContent = `备选点：${showBackups ? "显示" : "隐藏"}`;
+      linesBtn.textContent = `行程连线：${showLines ? "显示" : "隐藏"}`;
+      tileBtn.textContent = `地图底色：${isPaleTile ? "淡色" : "标准"}`;
+      photosBtn.classList.toggle("active", showPhotos);
+      backupBtn.classList.toggle("active", showBackups);
+      linesBtn.classList.toggle("active", showLines);
+      tileBtn.classList.toggle("active", isPaleTile);
+      photosBtn.setAttribute("aria-pressed", String(showPhotos));
+      backupBtn.setAttribute("aria-pressed", String(showBackups));
+      linesBtn.setAttribute("aria-pressed", String(showLines));
+      tileBtn.setAttribute("aria-pressed", String(isPaleTile));
+    }
 
-    document.getElementById("togglePhotosBtn").onclick = (e) => {
+    document.getElementById("togglePhotosBtn").onclick = () => {
       showPhotos = !showPhotos;
-      e.target.classList.toggle("active", showPhotos);
       renderSidebar();
+      updateMapControlLabels();
     };
 
     document.getElementById("toggleLinesBtn").onclick = () => {
       showLines = !showLines;
       renderMap(false);
+      updateMapControlLabels();
     };
 
-    document.getElementById("toggleBackupBtn").onclick = (e) => {
+    document.getElementById("toggleBackupBtn").onclick = () => {
       showBackups = !showBackups;
-      e.target.classList.toggle("active", showBackups);
+      renderFilterBar();
       renderSidebar();
       renderMap(false);
+      updateMapControlLabels();
     };
 
-    document.getElementById("toggleTileStyleBtn").onclick = (e) => {
+    document.getElementById("toggleTileStyleBtn").onclick = () => {
       isPaleTile = !isPaleTile;
       if (isPaleTile) {
         map.removeLayer(gsiStdLayer);
         gsiPaleLayer.addTo(map);
-        e.target.textContent = "🗺️ 切回国土地理院标准图";
-        e.target.classList.add("active");
       } else {
         map.removeLayer(gsiPaleLayer);
         gsiStdLayer.addTo(map);
-        e.target.textContent = "🗺️ 切换国土地理院淡色图";
-        e.target.classList.remove("active");
       }
+      updateMapControlLabels();
     };
 
     renderAll(true);
+    updateMapControlLabels();
+    requestAnimationFrame(() => map.invalidateSize({ pan: false }));
   </script>
 </body>
 </html>
